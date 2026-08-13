@@ -247,10 +247,10 @@ export function App() {
 
       <BackupModal
         isOpen={isBackupOpen}
-        trades={trades}
         onClose={() => setIsBackupOpen(false)}
         onRefreshData={reloadData}
       />
+
 
     </div>
   );

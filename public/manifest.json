@@ -1,0 +1,18 @@
+{
+  "name": "migo.nq - Futures Trading Journal",
+  "short_name": "migo.nq",
+  "description": "Offline-first futures trading journal and prop firm tracker",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1d2021",
+  "theme_color": "#fabd2f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231d2021'/><text y='.75em' x='10' font-size='70'>📊</text></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
