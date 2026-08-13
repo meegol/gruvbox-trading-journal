@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import type { Trade } from '../types/journal';
 import { toPng } from 'html-to-image';
-import { X, Check, Copy, Download, Printer } from 'lucide-react';
+import { X, Check, Copy, Download } from 'lucide-react';
 
 interface DayInspectorModalProps {
   isOpen: boolean;
@@ -63,17 +63,12 @@ export const DayInspectorModal: React.FC<DayInspectorModalProps> = ({
     }
   };
 
-  // Clean PDF Print - Only prints the PnL Card element
-  const handlePrintPDF = () => {
-    window.print();
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto font-mono text-xs no-print-backdrop">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto font-mono text-xs">
       <div className="glass-panel w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 relative my-8 border-2 border-[var(--gruv-border)]">
         
-        {/* Header (Hidden in PDF print) */}
-        <div className="flex flex-wrap items-center justify-between border-b border-[var(--gruv-border)] pb-4 mb-5 gap-3 no-print">
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between border-b border-[var(--gruv-border)] pb-4 mb-5 gap-3">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 rounded-lg bg-[var(--gruv-yellow)] text-[#1d2021] flex items-center justify-center font-bold">
               ●
@@ -105,15 +100,6 @@ export const DayInspectorModal: React.FC<DayInspectorModalProps> = ({
             </button>
 
             <button
-              onClick={handlePrintPDF}
-              title="Print or Save PDF Card"
-              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-[var(--gruv-bg)] text-[var(--gruv-fg)] border border-[var(--gruv-border)] hover:border-[var(--gruv-yellow)] transition-colors"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>PDF Card</span>
-            </button>
-
-            <button
               onClick={onClose}
               className="p-2 rounded-lg text-[var(--gruv-muted)] hover:text-[var(--gruv-fg)] hover:bg-[var(--gruv-bg)] transition-colors"
             >
@@ -125,7 +111,7 @@ export const DayInspectorModal: React.FC<DayInspectorModalProps> = ({
         {/* Printable & Shareable PnL Card Component */}
         <div 
           ref={cardRef}
-          className="printable-card bg-[#1d2021] border-2 border-[var(--gruv-border-solid)] rounded-xl p-5 mb-6 relative overflow-hidden shadow-2xl"
+          className="bg-[#1d2021] border-2 border-[var(--gruv-border-solid)] rounded-xl p-5 mb-6 relative overflow-hidden shadow-2xl"
         >
           {/* Top Indicator Line */}
           <div className={`h-1.5 w-full absolute top-0 left-0 ${isDayWin ? 'bg-[var(--gruv-green)]' : isDayLoss ? 'bg-[var(--gruv-red)]' : 'bg-[var(--gruv-yellow)]'}`} />
@@ -188,8 +174,8 @@ export const DayInspectorModal: React.FC<DayInspectorModalProps> = ({
           )}
         </div>
 
-        {/* List of Trades (Hidden in PDF print) */}
-        <div className="space-y-2.5 mb-5 no-print">
+        {/* List of Trades */}
+        <div className="space-y-2.5 mb-5">
           <span className="text-[10px] font-bold text-[var(--gruv-muted)] uppercase tracking-wider block">EXECUTION LOG</span>
           {trades.map((trade) => {
             const isTradeWin = trade.pnl > 0.01;
@@ -238,7 +224,7 @@ export const DayInspectorModal: React.FC<DayInspectorModalProps> = ({
           })}
         </div>
 
-        <div className="text-right no-print">
+        <div className="text-right">
           <button
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-[var(--gruv-surface)] text-[var(--gruv-fg)] border border-[var(--gruv-border)] hover:bg-[var(--gruv-bg)] transition-colors"

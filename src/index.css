@@ -100,39 +100,3 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--gruv-muted);
 }
-
-/* Clean PDF / Print Isolation for PnL Card */
-@media print {
-  body {
-    background-color: #1d2021 !important;
-    color: #ebdbb2 !important;
-  }
-
-  body * {
-    visibility: hidden;
-  }
-
-  .printable-card, .printable-card * {
-    visibility: visible !important;
-  }
-
-  .printable-card {
-    position: absolute !important;
-    left: 50% !important;
-    top: 50px !important;
-    transform: translateX(-50%) !important;
-    width: 100% !important;
-    max-width: 580px !important;
-    margin: 0 auto !important;
-    box-shadow: none !important;
-    border: 2px solid #3c3836 !important;
-    background-color: #1d2021 !important;
-    color: #ebdbb2 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .no-print {
-    display: none !important;
-  }
-}
