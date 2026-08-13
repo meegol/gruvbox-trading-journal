@@ -6,9 +6,9 @@ import {
   Database, 
   Sun, 
   Moon, 
-  TrendingUp,
   FolderPlus
 } from 'lucide-react';
+
 
 interface NavbarProps {
   accounts: Account[];
@@ -39,16 +39,16 @@ export const Navbar: React.FC<NavbarProps> = ({
         
         {/* Brand Title */}
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-[var(--gruv-yellow)] text-[#1d2021] flex items-center justify-center font-bold">
-            <TrendingUp className="w-5 h-5 stroke-[2.5]" />
+          <div className="w-8 h-8 rounded-lg bg-[var(--gruv-yellow)] text-[#1d2021] flex items-center justify-center font-bold font-ndot text-sm">
+            ●
           </div>
           <div>
-            <h1 className="font-bold text-lg tracking-tight text-[var(--gruv-fg)] font-mono">
+            <h1 className="font-bold text-xl tracking-wider text-[var(--gruv-fg)] font-ndot">
               migo.<span className="text-[var(--gruv-yellow)]">nq</span>
             </h1>
           </div>
-
         </div>
+
 
         {/* Account Switcher */}
         <div className="flex items-center space-x-2 bg-[var(--gruv-surface)] p-1.5 rounded-xl border border-[var(--gruv-border)]">

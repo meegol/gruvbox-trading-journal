@@ -4,9 +4,9 @@
   :root {
     --gruv-bg: #1d2021;
     --gruv-bg-soft: #282828;
-    --gruv-surface: rgba(40, 40, 40, 0.75);
+    --gruv-surface: rgba(40, 40, 40, 0.85);
     --gruv-surface-solid: #282828;
-    --gruv-border: rgba(60, 56, 54, 0.6);
+    --gruv-border: rgba(60, 56, 54, 0.7);
     --gruv-border-solid: #3c3836;
     --gruv-fg: #ebdbb2;
     --gruv-muted: #a89984;
@@ -18,15 +18,15 @@
     --gruv-blue: #83a598;
     --gruv-purple: #d3869b;
 
-    --glass-blur: 16px;
+    --glass-blur: 12px;
   }
 
   .theme-light {
     --gruv-bg: #fbf1c7;
     --gruv-bg-soft: #f2e5bc;
-    --gruv-surface: rgba(242, 229, 188, 0.82);
+    --gruv-surface: rgba(242, 229, 188, 0.9);
     --gruv-surface-solid: #f2e5bc;
-    --gruv-border: rgba(213, 196, 161, 0.8);
+    --gruv-border: rgba(213, 196, 161, 0.85);
     --gruv-border-solid: #d5c4a1;
     --gruv-fg: #282828;
     --gruv-muted: #7c6f64;
@@ -42,31 +42,37 @@
   body {
     background-color: var(--gruv-bg);
     color: var(--gruv-fg);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     min-height: 100vh;
     transition: background-color 0.3s ease, color 0.3s ease;
     overflow-x: hidden;
   }
 }
 
-/* Glassmorphism utility components */
+/* Nothing OS Dot Matrix Typography */
+.font-ndot {
+  font-family: "Silkscreen", "VT323", "JetBrains Mono", monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Nothing OS Glassmorphism Panel */
 .glass-panel {
   background-color: var(--gruv-surface);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--gruv-border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  border-radius: 1rem;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.4);
+  border-radius: 0.75rem;
 }
 
 .glass-panel-hover {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease-in-out;
 }
 
 .glass-panel-hover:hover {
-  border-color: rgba(250, 189, 47, 0.4);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5), 0 0 15px rgba(250, 189, 47, 0.15);
-  transform: translateY(-2px);
+  border-color: var(--gruv-yellow);
+  box-shadow: 0 6px 24px 0 rgba(0, 0, 0, 0.5), 0 0 10px rgba(250, 189, 47, 0.2);
 }
 
 .glass-button {
@@ -85,8 +91,8 @@
 
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -95,7 +101,7 @@
 
 ::-webkit-scrollbar-thumb {
   background: var(--gruv-border-solid);
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {

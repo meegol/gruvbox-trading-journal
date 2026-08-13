@@ -21,21 +21,23 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
   if (!isOpen) return null;
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState<string>('My 50k Prop Eval');
+  const [name, setName] = useState<string>('Apex 50k Eval #1');
   const [type, setType] = useState<AccountType>('eval');
   const [initialBalance, setInitialBalance] = useState<string>('50000');
   const [profitTarget, setProfitTarget] = useState<string>('3000');
   const [maxDrawdown, setMaxDrawdown] = useState<string>('2500');
+  const [dailyLossLimit, setDailyLossLimit] = useState<string>('500');
   const [payoutThreshold, setPayoutThreshold] = useState<string>('1500');
   const [notes, setNotes] = useState<string>('');
 
   const resetForm = () => {
     setEditingId(null);
-    setName('My 50k Prop Eval');
+    setName('Apex 50k Eval #1');
     setType('eval');
     setInitialBalance('50000');
     setProfitTarget('3000');
     setMaxDrawdown('2500');
+    setDailyLossLimit('500');
     setPayoutThreshold('1500');
     setNotes('');
   };
@@ -47,6 +49,7 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
     setInitialBalance(acc.initialBalance.toString());
     setProfitTarget(acc.profitTarget.toString());
     setMaxDrawdown(acc.maxDrawdown.toString());
+    setDailyLossLimit((acc.dailyLossLimit || 500).toString());
     setPayoutThreshold((acc.payoutThreshold || 1500).toString());
     setNotes(acc.notes || '');
   };
@@ -58,6 +61,7 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
     const numBal = parseFloat(initialBalance) || 50000;
     const numTarget = parseFloat(profitTarget) || 0;
     const numDrawdown = parseFloat(maxDrawdown) || 2500;
+    const numDailyLoss = parseFloat(dailyLossLimit) || 500;
     const numPayout = parseFloat(payoutThreshold) || 1500;
 
     const newAcc: Account = {
@@ -70,6 +74,7 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
         : numBal,
       profitTarget: numTarget,
       maxDrawdown: numDrawdown,
+      dailyLossLimit: numDailyLoss,
       payoutThreshold: numPayout,
       status: 'active',
       createdAt: editingId
@@ -188,7 +193,7 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div>
               <label className="text-[var(--gruv-muted)] block mb-1">Initial Balance ($)</label>
               <input
@@ -203,7 +208,7 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
 
             {type === 'eval' && (
               <div>
-                <label className="text-[var(--gruv-muted)] block mb-1">Profit Target to Pass ($)</label>
+                <label className="text-[var(--gruv-muted)] block mb-1">Profit Target ($)</label>
                 <input
                   type="number"
                   value={profitTarget}
@@ -216,7 +221,7 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
 
             {type === 'funded' && (
               <div>
-                <label className="text-[var(--gruv-muted)] block mb-1">Payout Profit Threshold ($)</label>
+                <label className="text-[var(--gruv-muted)] block mb-1">Payout Threshold ($)</label>
                 <input
                   type="number"
                   value={payoutThreshold}
@@ -228,7 +233,7 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
             )}
 
             <div>
-              <label className="text-[var(--gruv-muted)] block mb-1">Max Drawdown Limit ($)</label>
+              <label className="text-[var(--gruv-muted)] block mb-1">Max Drawdown ($)</label>
               <input
                 type="number"
                 required
@@ -238,7 +243,20 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
                 className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
               />
             </div>
+
+            <div>
+              <label className="text-[var(--gruv-muted)] block mb-1">Daily Max Loss ($)</label>
+              <input
+                type="number"
+                required
+                value={dailyLossLimit}
+                onChange={(e) => setDailyLossLimit(e.target.value)}
+                placeholder="500"
+                className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
+              />
+            </div>
           </div>
+
 
           <div>
             <label className="text-[var(--gruv-muted)] block mb-1">Notes / Description</label>

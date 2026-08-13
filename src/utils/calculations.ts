@@ -1,4 +1,4 @@
-import type { Account, Trade, TradingStats, CalendarDaySummary, EmotionStat, EmotionRating } from '../types/journal';
+import type { Account, Trade, TradingStats, CalendarDaySummary, EmotionStat, EmotionRating, SessionStat, TradingSession } from '../types/journal';
 
 export function computeTradingStats(trades: Trade[], initialBalance: number): TradingStats {
   if (trades.length === 0) {
@@ -143,6 +143,15 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
   const netPnl = accountTrades.reduce((acc, t) => acc + t.pnl, 0);
   const currentBalance = account.initialBalance + netPnl;
 
+  // Compute Today's PnL for Daily Loss Limit Guard
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayTrades = accountTrades.filter(
+    (t) => new Date(t.entryDate).toISOString().split('T')[0] === todayStr
+  );
+  const todayPnl = todayTrades.reduce((acc, t) => acc + t.pnl, 0);
+  const dailyLossLimit = account.dailyLossLimit || 500;
+  const isDailyLimitBreached = todayPnl <= -dailyLossLimit;
+
   let peakBalance = account.initialBalance;
   let running = account.initialBalance;
   let maxDrawdownUsed = 0;
@@ -178,6 +187,9 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
       maxDrawdownUsed,
       drawdownUsedPercent,
       drawdownBufferRemaining,
+      todayPnl,
+      dailyLossLimit,
+      isDailyLimitBreached,
       isPassed,
       isFailed,
       typeLabel: 'Evaluation',
@@ -185,6 +197,8 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
         ? 'PASSED - Target Achieved'
         : isFailed
         ? 'FAILED - Max Drawdown Breached'
+        : isDailyLimitBreached
+        ? 'DAILY LOSS LIMIT BREACHED — WALK AWAY FOR THE DAY'
         : `${progressPct.toFixed(1)}% to Passing ($${remainingToPass.toLocaleString('en-US', { minimumFractionDigits: 2 })} remaining)`,
     };
   } else if (account.type === 'funded') {
@@ -204,6 +218,9 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
       maxDrawdownUsed,
       drawdownUsedPercent,
       drawdownBufferRemaining,
+      todayPnl,
+      dailyLossLimit,
+      isDailyLimitBreached,
       isEligible,
       isFailed,
       typeLabel: 'Funded Account',
@@ -211,6 +228,8 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
         ? 'PAYOUT ELIGIBLE'
         : isFailed
         ? 'FAILED - Max Drawdown Breached'
+        : isDailyLimitBreached
+        ? 'DAILY LOSS LIMIT BREACHED — WALK AWAY FOR THE DAY'
         : `$${netPnl.toLocaleString('en-US', { minimumFractionDigits: 2 })} / $${threshold.toLocaleString('en-US')} to Payout (${progressPct.toFixed(1)}%)`,
     };
   } else {
@@ -223,8 +242,13 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
       maxDrawdownUsed,
       drawdownUsedPercent,
       drawdownBufferRemaining,
+      todayPnl,
+      dailyLossLimit,
+      isDailyLimitBreached,
       typeLabel: 'Personal Account',
-      statusText: `Total Return: ${growthPercent >= 0 ? '+' : ''}${growthPercent.toFixed(2)}%`,
+      statusText: isDailyLimitBreached
+        ? 'DAILY LOSS LIMIT BREACHED — WALK AWAY FOR THE DAY'
+        : `Total Return: ${growthPercent >= 0 ? '+' : ''}${growthPercent.toFixed(2)}%`,
     };
   }
 }
@@ -279,6 +303,34 @@ export function computeEmotionStats(trades: Trade[]): EmotionStat[] {
       count: val.count,
       pnl: val.pnl,
       winRate: (val.wins / val.count) * 100,
+    });
+  });
+
+  return result.sort((a, b) => b.pnl - a.pnl);
+}
+
+export function computeSessionStats(trades: Trade[]): SessionStat[] {
+  const map = new Map<TradingSession, { count: number; pnl: number; wins: number }>();
+
+  const sessions: TradingSession[] = ['NY AM Open', 'NY PM Session', 'London', 'Asia / Overnight'];
+  sessions.forEach((s) => map.set(s, { count: 0, pnl: 0, wins: 0 }));
+
+  for (const t of trades) {
+    const sess = t.session || 'NY AM Open';
+    const existing = map.get(sess) || { count: 0, pnl: 0, wins: 0 };
+    existing.count += 1;
+    existing.pnl += t.pnl;
+    if (t.pnl > 0.01) existing.wins += 1;
+    map.set(sess, existing);
+  }
+
+  const result: SessionStat[] = [];
+  map.forEach((val, session) => {
+    result.push({
+      session,
+      count: val.count,
+      pnl: val.pnl,
+      winRate: val.count > 0 ? (val.wins / val.count) * 100 : 0,
     });
   });
 

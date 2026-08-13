@@ -5,6 +5,7 @@ export type FuturesSymbol = 'NQ' | 'MNQ' | 'ES' | 'MES' | 'YM' | 'MYM' | 'RTY' |
 export type TradeDirection = 'long' | 'short';
 export type TradeResultStatus = 'win' | 'loss' | 'breakeven';
 export type EmotionRating = 'Disciplined' | 'FOMO' | 'Revenge' | 'Hesitant' | 'Calm' | 'Greedy' | 'Patient';
+export type TradingSession = 'NY AM Open' | 'NY PM Session' | 'London' | 'Asia / Overnight';
 
 export interface Account {
   id: string;
@@ -14,6 +15,7 @@ export interface Account {
   currentBalance: number;
   profitTarget: number;
   maxDrawdown: number;
+  dailyLossLimit?: number; // e.g. 500 for $500 max daily loss
   minTradingDays?: number;
   payoutThreshold?: number;
   minPayoutBuffer?: number;
@@ -28,6 +30,7 @@ export interface Trade {
   symbol: FuturesSymbol | string;
   direction: TradeDirection;
   assetClass: 'futures';
+  session?: TradingSession;
   entryPrice?: number;
   exitPrice?: number;
   quantity?: number;
@@ -44,9 +47,10 @@ export interface Trade {
   status: TradeResultStatus;
   emotion: EmotionRating;
   rating: number; // 1-5 stars
-  preTradeNotes?: string; // Pre-trade setup plan
-  postTradeNotes?: string; // Post-trade review
-  screenshot?: string; // Data URL Base64 image
+  checklistPassed?: boolean;
+  preTradeNotes?: string;
+  postTradeNotes?: string;
+  screenshot?: string;
 }
 
 export interface TradingStats {
@@ -86,6 +90,13 @@ export interface CalendarDaySummary {
 
 export interface EmotionStat {
   emotion: EmotionRating;
+  count: number;
+  pnl: number;
+  winRate: number;
+}
+
+export interface SessionStat {
+  session: TradingSession;
   count: number;
   pnl: number;
   winRate: number;

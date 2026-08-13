@@ -99,7 +99,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ trades, onSelectDay 
             <CalendarIcon className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-bold text-lg text-[var(--gruv-fg)] font-mono tracking-tight">
+            <h2 className="font-bold text-lg text-[var(--gruv-fg)] font-ndot tracking-wider">
               PnL CALENDAR
             </h2>
             <p className="text-xs text-[var(--gruv-muted)] font-mono">
@@ -118,9 +118,10 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ trades, onSelectDay 
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          <span className="font-mono font-bold text-sm text-[var(--gruv-fg)] px-3 min-w-[140px] text-center">
+          <span className="font-ndot font-bold text-sm text-[var(--gruv-fg)] px-3 min-w-[140px] text-center tracking-wider">
             {MONTH_NAMES[currentMonth]} {currentYear}
           </span>
+
 
           <button
             onClick={handleNextMonth}
@@ -238,9 +239,10 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ trades, onSelectDay 
               {/* Day Content */}
               {hasTrades ? (
                 <div className="my-auto text-right">
-                  <div className={`text-xs md:text-sm font-bold truncate ${isWinDay ? 'text-[var(--gruv-green)]' : isLossDay ? 'text-[var(--gruv-red)]' : 'text-[var(--gruv-fg)]'}`}>
+                  <div className={`text-xs md:text-sm font-bold font-ndot tracking-wider truncate ${isWinDay ? 'text-[var(--gruv-green)]' : isLossDay ? 'text-[var(--gruv-red)]' : 'text-[var(--gruv-fg)]'}`}>
                     {summary.pnl >= 0 ? '+' : ''}${summary.pnl.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
+
 
                   {summary.netR !== 0 && (
                     <div className="text-[9px] text-[var(--gruv-muted)] font-mono">
