@@ -39,15 +39,16 @@ export const Navbar: React.FC<NavbarProps> = ({
         
         {/* Brand Title */}
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-[var(--gruv-yellow)] text-[#1d2021] flex items-center justify-center font-bold font-ndot text-sm">
+          <div className="w-8 h-8 rounded-lg bg-[var(--gruv-yellow)] text-[#1d2021] flex items-center justify-center font-bold font-mono text-sm">
             ●
           </div>
           <div>
-            <h1 className="font-bold text-xl tracking-wider text-[var(--gruv-fg)] font-ndot">
+            <h1 className="font-bold text-xl tracking-wider text-[var(--gruv-fg)] font-mono">
               migo.<span className="text-[var(--gruv-yellow)]">nq</span>
             </h1>
           </div>
         </div>
+
 
 
         {/* Account Switcher */}

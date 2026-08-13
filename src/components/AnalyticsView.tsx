@@ -41,7 +41,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ trades }) => {
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-bold text-base text-[var(--gruv-fg)] font-ndot tracking-wider">SESSION PROFITABILITY</h2>
+            <h2 className="font-bold text-base text-[var(--gruv-fg)] font-mono tracking-wider">SESSION PROFITABILITY</h2>
             <p className="text-[11px] text-[var(--gruv-muted)]">NY AM vs NY PM vs London</p>
           </div>
         </div>
@@ -62,7 +62,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ trades }) => {
                 </div>
 
                 <div className="text-right">
-                  <div className={`font-bold text-sm font-ndot ${isPos ? 'text-[var(--gruv-green)]' : 'text-[var(--gruv-red)]'}`}>
+                  <div className={`font-bold text-sm font-mono ${isPos ? 'text-[var(--gruv-green)]' : 'text-[var(--gruv-red)]'}`}>
                     {isPos ? '+' : ''}${stat.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -79,7 +79,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ trades }) => {
             <Brain className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-bold text-base text-[var(--gruv-fg)] font-ndot tracking-wider">PSYCHOLOGY &amp; MINDSET</h2>
+            <h2 className="font-bold text-base text-[var(--gruv-fg)] font-mono tracking-wider">PSYCHOLOGY &amp; MINDSET</h2>
             <p className="text-[11px] text-[var(--gruv-muted)]">Discipline vs FOMO or revenge trading</p>
           </div>
         </div>
@@ -107,7 +107,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ trades }) => {
                 </div>
 
                 <div className="text-right">
-                  <div className={`font-bold text-sm font-ndot ${isPos ? 'text-[var(--gruv-green)]' : 'text-[var(--gruv-red)]'}`}>
+                  <div className={`font-bold text-sm font-mono ${isPos ? 'text-[var(--gruv-green)]' : 'text-[var(--gruv-red)]'}`}>
                     {isPos ? '+' : ''}${stat.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -124,7 +124,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ trades }) => {
             <ArrowUpRight className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-bold text-base text-[var(--gruv-fg)] font-ndot tracking-wider">LONG VS SHORT</h2>
+            <h2 className="font-bold text-base text-[var(--gruv-fg)] font-mono tracking-wider">LONG VS SHORT</h2>
             <p className="text-[11px] text-[var(--gruv-muted)] font-mono">Directional performance</p>
           </div>
         </div>
@@ -136,7 +136,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ trades }) => {
                 <ArrowUpRight className="w-4 h-4" />
                 <span>LONG TRADES ({longTrades.length})</span>
               </span>
-              <span className={`font-bold text-sm font-ndot ${longPnl >= 0 ? 'text-[var(--gruv-green)]' : 'text-[var(--gruv-red)]'}`}>
+              <span className={`font-bold text-sm font-mono ${longPnl >= 0 ? 'text-[var(--gruv-green)]' : 'text-[var(--gruv-red)]'}`}>
                 {longPnl >= 0 ? '+' : ''}${longPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
@@ -152,7 +152,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ trades }) => {
                 <ArrowDownRight className="w-4 h-4" />
                 <span>SHORT TRADES ({shortTrades.length})</span>
               </span>
-              <span className={`font-bold text-sm font-ndot ${shortPnl >= 0 ? 'text-[var(--gruv-green)]' : 'text-[var(--gruv-red)]'}`}>
+              <span className={`font-bold text-sm font-mono ${shortPnl >= 0 ? 'text-[var(--gruv-green)]' : 'text-[var(--gruv-red)]'}`}>
                 {shortPnl >= 0 ? '+' : ''}${shortPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
@@ -163,6 +163,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ trades }) => {
           </div>
         </div>
       </div>
+
 
     </div>
   );

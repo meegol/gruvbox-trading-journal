@@ -77,9 +77,10 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ stats }) => {
               <IconComponent className="w-4 h-4 opacity-70" />
             </div>
 
-            <div className={`text-lg md:text-xl lg:text-2xl font-bold font-ndot ${card.color} truncate tracking-wider`}>
+            <div className={`text-lg md:text-xl lg:text-2xl font-bold font-mono ${card.color} truncate tracking-wider`}>
               {card.value}
             </div>
+
 
 
             <div className="text-[10px] md:text-xs font-mono text-[var(--gruv-muted)] mt-1 truncate">

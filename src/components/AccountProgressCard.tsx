@@ -46,7 +46,7 @@ export const AccountProgressCard: React.FC<AccountProgressCardProps> = ({
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h2 className="font-bold text-lg md:text-xl text-[var(--gruv-fg)] font-ndot tracking-wider">{account.name}</h2>
+              <h2 className="font-bold text-lg md:text-xl text-[var(--gruv-fg)] font-mono tracking-wider">{account.name}</h2>
               <span className={`text-[10px] font-mono uppercase px-2.5 py-0.5 rounded font-bold border ${
                 account.type === 'eval' 
                   ? 'bg-[var(--gruv-yellow)]/15 text-[var(--gruv-yellow)] border-[var(--gruv-yellow)]/40'
@@ -66,7 +66,7 @@ export const AccountProgressCard: React.FC<AccountProgressCardProps> = ({
         {/* Current Balance Display */}
         <div className="text-right">
           <div className="text-[10px] text-[var(--gruv-muted)] font-mono uppercase tracking-wider">CURRENT BALANCE</div>
-          <div className="text-2xl md:text-3xl font-bold font-ndot tracking-wider text-[var(--gruv-fg)]">
+          <div className="text-2xl md:text-3xl font-bold font-mono tracking-wider text-[var(--gruv-fg)]">
             ${progress.currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className={`text-xs font-mono font-bold flex items-center justify-end space-x-1 ${isNetPositive ? 'text-[var(--gruv-green)]' : 'text-[var(--gruv-red)]'}`}>
@@ -83,11 +83,11 @@ export const AccountProgressCard: React.FC<AccountProgressCardProps> = ({
         {account.type === 'eval' && (
           <div className="bg-[var(--gruv-bg)]/80 p-4 rounded-xl border border-[var(--gruv-border)]">
             <div className="flex items-center justify-between text-xs font-mono mb-2">
-              <span className="font-bold text-[var(--gruv-yellow)] font-ndot tracking-wider flex items-center space-x-1.5">
+              <span className="font-bold text-[var(--gruv-yellow)] font-mono tracking-wider flex items-center space-x-1.5">
                 <Target className="w-4 h-4" />
                 <span>PROGRESS TO PASSING</span>
               </span>
-              <span className="font-bold font-ndot text-[var(--gruv-fg)]">
+              <span className="font-bold font-mono text-[var(--gruv-fg)]">
                 ${progress.netPnl > 0 ? progress.netPnl.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'} / ${progress.target?.toLocaleString()}
               </span>
             </div>
@@ -102,7 +102,7 @@ export const AccountProgressCard: React.FC<AccountProgressCardProps> = ({
             <div className="flex items-center justify-between text-xs font-mono text-[var(--gruv-muted)] mt-2">
               <span>{progress.progressPct?.toFixed(1)}% Passed</span>
               {progress.isPassed ? (
-                <span className="text-[var(--gruv-green)] font-bold font-ndot flex items-center space-x-1">
+                <span className="text-[var(--gruv-green)] font-bold font-mono flex items-center space-x-1">
                   <CheckCircle className="w-3.5 h-3.5" />
                   <span>TARGET ACHIEVED!</span>
                 </span>
@@ -117,11 +117,11 @@ export const AccountProgressCard: React.FC<AccountProgressCardProps> = ({
         {account.type === 'funded' && (
           <div className="bg-[var(--gruv-bg)]/80 p-4 rounded-xl border border-[var(--gruv-border)]">
             <div className="flex items-center justify-between text-xs font-mono mb-2">
-              <span className="font-bold text-[var(--gruv-green)] font-ndot tracking-wider flex items-center space-x-1.5">
+              <span className="font-bold text-[var(--gruv-green)] font-mono tracking-wider flex items-center space-x-1.5">
                 <DollarSign className="w-4 h-4" />
                 <span>PROGRESS TO PAYOUT</span>
               </span>
-              <span className="font-bold font-ndot text-[var(--gruv-fg)]">
+              <span className="font-bold font-mono text-[var(--gruv-fg)]">
                 ${progress.netPnl > 0 ? progress.netPnl.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'} / ${progress.payoutThreshold?.toLocaleString()}
               </span>
             </div>
@@ -136,7 +136,7 @@ export const AccountProgressCard: React.FC<AccountProgressCardProps> = ({
             <div className="flex items-center justify-between text-xs font-mono text-[var(--gruv-muted)] mt-2">
               <span>{progress.progressPct?.toFixed(1)}% Payout Buffer</span>
               {progress.isEligible ? (
-                <span className="text-[var(--gruv-green)] font-bold font-ndot flex items-center space-x-1">
+                <span className="text-[var(--gruv-green)] font-bold font-mono flex items-center space-x-1">
                   <CheckCircle className="w-3.5 h-3.5" />
                   <span>PAYOUT READY!</span>
                 </span>
@@ -151,11 +151,11 @@ export const AccountProgressCard: React.FC<AccountProgressCardProps> = ({
         {account.type === 'personal' && (
           <div className="bg-[var(--gruv-bg)]/80 p-4 rounded-xl border border-[var(--gruv-border)]">
             <div className="flex items-center justify-between text-xs font-mono mb-2">
-              <span className="font-bold text-[var(--gruv-blue)] font-ndot tracking-wider flex items-center space-x-1.5">
+              <span className="font-bold text-[var(--gruv-blue)] font-mono tracking-wider flex items-center space-x-1.5">
                 <TrendingUp className="w-4 h-4" />
                 <span>ALL-TIME RETURN</span>
               </span>
-              <span className="font-bold font-ndot text-[var(--gruv-fg)]">
+              <span className="font-bold font-mono text-[var(--gruv-fg)]">
                 {progress.growthPercent! >= 0 ? '+' : ''}{progress.growthPercent?.toFixed(2)}%
               </span>
             </div>
@@ -172,11 +172,11 @@ export const AccountProgressCard: React.FC<AccountProgressCardProps> = ({
         {/* Max Drawdown Cushion Bar */}
         <div className="bg-[var(--gruv-bg)]/80 p-4 rounded-xl border border-[var(--gruv-border)]">
           <div className="flex items-center justify-between text-xs font-mono mb-2">
-            <span className="font-bold text-[var(--gruv-orange)] font-ndot tracking-wider flex items-center space-x-1.5">
+            <span className="font-bold text-[var(--gruv-orange)] font-mono tracking-wider flex items-center space-x-1.5">
               <ShieldAlert className="w-4 h-4" />
               <span>MAX DRAWDOWN BUFFER</span>
             </span>
-            <span className="font-bold font-ndot text-[var(--gruv-fg)]">
+            <span className="font-bold font-mono text-[var(--gruv-fg)]">
               ${progress.drawdownBufferRemaining.toLocaleString('en-US', { minimumFractionDigits: 2 })} Cushion
             </span>
           </div>
@@ -212,13 +212,13 @@ export const AccountProgressCard: React.FC<AccountProgressCardProps> = ({
       <div className="mt-4 pt-3 border-t border-[var(--gruv-border)]/50 flex flex-wrap items-center justify-between text-xs font-mono">
         <div className="flex items-center space-x-2 text-[var(--gruv-fg)]">
           <span className="text-[var(--gruv-muted)]">Status:</span>
-          <span className={`font-bold ${progress.isDailyLimitBreached ? 'text-[var(--gruv-red)] font-ndot' : 'text-[var(--gruv-yellow)]'}`}>
+          <span className={`font-bold ${progress.isDailyLimitBreached ? 'text-[var(--gruv-red)] font-mono' : 'text-[var(--gruv-yellow)]'}`}>
             {progress.statusText}
           </span>
         </div>
         <div className="flex items-center space-x-4">
           <span className="text-[var(--gruv-muted)] text-[11px]">
-            Today PnL: <span className={progress.todayPnl >= 0 ? 'text-[var(--gruv-green)] font-bold font-ndot' : 'text-[var(--gruv-red)] font-bold font-ndot'}>
+            Today PnL: <span className={progress.todayPnl >= 0 ? 'text-[var(--gruv-green)] font-bold font-mono' : 'text-[var(--gruv-red)] font-bold font-mono'}>
               {progress.todayPnl >= 0 ? '+' : ''}${progress.todayPnl.toFixed(2)}
             </span> (Daily Max: -${progress.dailyLossLimit})
           </span>
@@ -233,3 +233,4 @@ export const AccountProgressCard: React.FC<AccountProgressCardProps> = ({
     </div>
   );
 };
+
