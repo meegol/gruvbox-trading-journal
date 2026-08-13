@@ -1,5 +1,4 @@
-import type { Account, Trade, TradingStats, CalendarDaySummary, TagStat, EmotionStat, EmotionRating } from '../types/journal';
-
+import type { Account, Trade, TradingStats, CalendarDaySummary, EmotionStat, EmotionRating } from '../types/journal';
 
 export function computeTradingStats(trades: Trade[], initialBalance: number): TradingStats {
   if (trades.length === 0) {
@@ -47,7 +46,6 @@ export function computeTradingStats(trades: Trade[], initialBalance: number): Tr
   let bestTrade = -Infinity;
   let worstTrade = Infinity;
 
-  // For drawdown calculation chronologically ascending
   const sortedAsc = [...trades].sort(
     (a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime()
   );
@@ -184,7 +182,7 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
       isFailed,
       typeLabel: 'Evaluation',
       statusText: isPassed
-        ? 'PASSED - Ready for Funded Account!'
+        ? 'PASSED - Target Achieved'
         : isFailed
         ? 'FAILED - Max Drawdown Breached'
         : `${progressPct.toFixed(1)}% to Passing ($${remainingToPass.toLocaleString('en-US', { minimumFractionDigits: 2 })} remaining)`,
@@ -210,10 +208,10 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
       isFailed,
       typeLabel: 'Funded Account',
       statusText: isEligible
-        ? 'ELIGIBLE FOR PAYOUT REQUEST!'
+        ? 'PAYOUT ELIGIBLE'
         : isFailed
         ? 'FAILED - Max Drawdown Breached'
-        : `$${netPnl.toLocaleString('en-US', { minimumFractionDigits: 2 })} / $${threshold.toLocaleString('en-US')} to Next Payout (${progressPct.toFixed(1)}%)`,
+        : `$${netPnl.toLocaleString('en-US', { minimumFractionDigits: 2 })} / $${threshold.toLocaleString('en-US')} to Payout (${progressPct.toFixed(1)}%)`,
     };
   } else {
     const growthPercent = (netPnl / account.initialBalance) * 100;
@@ -237,7 +235,7 @@ export function groupTradesByCalendarMonth(trades: Trade[], year: number, month:
   for (const trade of trades) {
     const d = new Date(trade.entryDate);
     if (d.getFullYear() === year && d.getMonth() === month) {
-      const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
+      const dateStr = d.toISOString().split('T')[0];
       const existing = map.get(dateStr) || {
         dateStr,
         pnl: 0,
@@ -260,33 +258,6 @@ export function groupTradesByCalendarMonth(trades: Trade[], year: number, month:
   }
 
   return map;
-}
-
-export function computeTagStats(trades: Trade[]): TagStat[] {
-  const map = new Map<string, { count: number; pnl: number; wins: number }>();
-
-  for (const t of trades) {
-    const tags = t.tags && t.tags.length > 0 ? t.tags : ['Uncategorized'];
-    for (const tag of tags) {
-      const existing = map.get(tag) || { count: 0, pnl: 0, wins: 0 };
-      existing.count += 1;
-      existing.pnl += t.pnl;
-      if (t.pnl > 0.01) existing.wins += 1;
-      map.set(tag, existing);
-    }
-  }
-
-  const result: TagStat[] = [];
-  map.forEach((val, tag) => {
-    result.push({
-      tag,
-      count: val.count,
-      pnl: val.pnl,
-      winRate: (val.wins / val.count) * 100,
-    });
-  });
-
-  return result.sort((a, b) => b.pnl - a.pnl);
 }
 
 export function computeEmotionStats(trades: Trade[]): EmotionStat[] {

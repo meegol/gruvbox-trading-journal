@@ -34,7 +34,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({
 
   const handleExportCSV = () => {
     if (trades.length === 0) return;
-    const headers = ['ID', 'Date', 'AccountID', 'Symbol', 'Direction', 'AssetClass', 'EntryPrice', 'ExitPrice', 'Quantity', 'Fees', 'NetPnL', 'RMultiple', 'Emotion', 'Rating', 'Tags', 'PreNotes', 'PostNotes'];
+    const headers = ['ID', 'Date', 'AccountID', 'Symbol', 'Direction', 'AssetClass', 'BalanceBefore', 'BalanceAfter', 'EntryPrice', 'ExitPrice', 'Quantity', 'Fees', 'NetPnL', 'RMultiple', 'Emotion', 'Rating', 'PreNotes', 'PostNotes'];
     const rows = trades.map((t) => [
       t.id,
       t.entryDate,
@@ -42,20 +42,22 @@ export const BackupModal: React.FC<BackupModalProps> = ({
       t.symbol,
       t.direction,
       t.assetClass,
-      t.entryPrice,
-      t.exitPrice,
-      t.quantity,
+      t.balanceBefore || '',
+      t.balanceAfter || '',
+      t.entryPrice || '',
+      t.exitPrice || '',
+      t.quantity || 1,
       t.fees,
       t.pnl,
       t.rMultiple || 0,
       t.emotion,
       t.rating,
-      `"${(t.tags || []).join(';')}"`,
       `"${(t.preTradeNotes || '').replace(/"/g, '""')}"`,
       `"${(t.postTradeNotes || '').replace(/"/g, '""')}"`,
     ]);
 
     const csvContent = [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

@@ -1,10 +1,10 @@
 export type AccountType = 'eval' | 'funded' | 'personal';
 export type AccountStatus = 'active' | 'passed' | 'failed' | 'archived';
-export type AssetClass = 'futures' | 'crypto' | 'forex' | 'stocks' | 'options';
+export type AssetClass = 'futures';
+export type FuturesSymbol = 'NQ' | 'MNQ' | 'ES' | 'MES' | 'YM' | 'MYM' | 'RTY' | 'M2K' | 'CL' | 'GC';
 export type TradeDirection = 'long' | 'short';
 export type TradeResultStatus = 'win' | 'loss' | 'breakeven';
 export type EmotionRating = 'Disciplined' | 'FOMO' | 'Revenge' | 'Hesitant' | 'Calm' | 'Greedy' | 'Patient';
-
 
 export interface Account {
   id: string;
@@ -12,11 +12,11 @@ export interface Account {
   type: AccountType;
   initialBalance: number;
   currentBalance: number;
-  profitTarget: number; // e.g. 3000 for 50k eval
-  maxDrawdown: number;  // e.g. 2500 max trailing/static drawdown limit
-  minTradingDays?: number; // e.g. 5 days
-  payoutThreshold?: number; // e.g. 1500 profit buffer needed for payout
-  minPayoutBuffer?: number; // e.g. 50100 min balance to request payout
+  profitTarget: number;
+  maxDrawdown: number;
+  minTradingDays?: number;
+  payoutThreshold?: number;
+  minPayoutBuffer?: number;
   status: AccountStatus;
   createdAt: string;
   notes?: string;
@@ -25,9 +25,9 @@ export interface Account {
 export interface Trade {
   id: string;
   accountId: string;
-  symbol: string;
+  symbol: FuturesSymbol | string;
   direction: TradeDirection;
-  assetClass: AssetClass;
+  assetClass: 'futures';
   entryPrice?: number;
   exitPrice?: number;
   quantity?: number;
@@ -36,27 +36,25 @@ export interface Trade {
   stopLoss?: number;
   takeProfit?: number;
   fees: number;
-  pnl: number; // Net PnL after fees
+  pnl: number;
   pnlPercentage: number;
   rMultiple?: number;
-  entryDate: string; // ISO format: YYYY-MM-DDTHH:mm
+  entryDate: string;
   exitDate: string;
   status: TradeResultStatus;
-  tags: string[];
   emotion: EmotionRating;
-  rating: number; // 1-5
-  preTradeNotes?: string;
-  postTradeNotes?: string;
+  rating: number; // 1-5 stars
+  preTradeNotes?: string; // Pre-trade setup plan
+  postTradeNotes?: string; // Post-trade review
   screenshot?: string; // Data URL Base64 image
 }
-
 
 export interface TradingStats {
   totalTrades: number;
   winCount: number;
   lossCount: number;
   breakevenCount: number;
-  winRate: number; // %
+  winRate: number;
   totalPnl: number;
   averagePnl: number;
   totalFees: number;
@@ -64,7 +62,7 @@ export interface TradingStats {
   avgLoss: number;
   profitFactor: number;
   avgRMultiple: number;
-  expectancy: number; // $ per trade
+  expectancy: number;
   maxDrawdownAmount: number;
   maxDrawdownPercent: number;
   longCount: number;
@@ -77,20 +75,13 @@ export interface TradingStats {
 }
 
 export interface CalendarDaySummary {
-  dateStr: string; // YYYY-MM-DD
+  dateStr: string;
   pnl: number;
   tradeCount: number;
   winCount: number;
   lossCount: number;
   netR: number;
   trades: Trade[];
-}
-
-export interface TagStat {
-  tag: string;
-  count: number;
-  pnl: number;
-  winRate: number;
 }
 
 export interface EmotionStat {

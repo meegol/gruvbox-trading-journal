@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-
 import type { Account, Trade, TradingStats } from './types/journal';
 import { 
   getAllAccounts, 
@@ -9,7 +8,6 @@ import {
   saveTrade, 
   deleteTrade
 } from './services/db';
-import { SAMPLE_ACCOUNT, SAMPLE_FUNDED_ACCOUNT, SAMPLE_TRADES } from './services/sampleData';
 import { computeTradingStats } from './utils/calculations';
 
 import { Navbar } from './components/Navbar';
@@ -28,7 +26,6 @@ import { BackupModal } from './components/BackupModal';
 
 import { Calendar, TrendingUp, Table, BarChart2 } from 'lucide-react';
 
-
 export function App() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [activeAccountId, setActiveAccountId] = useState<string>('acc-50k-eval-default');
@@ -46,12 +43,10 @@ export function App() {
   // Main Dashboard Tab
   const [activeTab, setActiveTab] = useState<'calendar' | 'equity' | 'log' | 'analytics'>('calendar');
 
-  // Initial Data Load
   const reloadData = async () => {
     const accList = await getAllAccounts();
     setAccounts(accList);
     
-    // Ensure active account exists
     const targetAccId = accList.some((a) => a.id === activeAccountId)
       ? activeAccountId
       : accList.length > 0
@@ -74,7 +69,6 @@ export function App() {
     }
   }, [activeAccountId]);
 
-  // Dark / Light Theme Toggle Handler
   const handleToggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     if (isDarkMode) {
@@ -84,7 +78,6 @@ export function App() {
     }
   };
 
-  // Trade Handlers
   const handleSaveTrade = async (trade: Trade) => {
     await saveTrade(trade);
     await reloadData();
@@ -95,7 +88,6 @@ export function App() {
     await reloadData();
   };
 
-  // Account Handlers
   const handleSaveAccount = async (account: Account) => {
     await saveAccount(account);
     setActiveAccountId(account.id);
@@ -107,18 +99,6 @@ export function App() {
     await reloadData();
   };
 
-  // Load $50k Demo Data 1-Click
-  const handleLoadDemoData = async () => {
-    await saveAccount(SAMPLE_ACCOUNT);
-    await saveAccount(SAMPLE_FUNDED_ACCOUNT);
-    for (const trd of SAMPLE_TRADES) {
-      await saveTrade(trd);
-    }
-    setActiveAccountId(SAMPLE_ACCOUNT.id);
-    await reloadData();
-  };
-
-  // Compute Current Account Stats
   const activeAccount = accounts.find((a) => a.id === activeAccountId) || null;
   const initialBalance = activeAccount ? activeAccount.initialBalance : 50000;
   const stats: TradingStats = computeTradingStats(trades, initialBalance);
@@ -126,7 +106,6 @@ export function App() {
   return (
     <div className="min-h-screen bg-[var(--gruv-bg)] text-[var(--gruv-fg)] font-mono selection:bg-[var(--gruv-yellow)] selection:text-[#1d2021]">
       
-      {/* Navbar Header */}
       <Navbar
         accounts={accounts}
         activeAccountId={activeAccountId}
@@ -135,25 +114,20 @@ export function App() {
         onOpenAccountModal={() => setIsAccountModalOpen(true)}
         onOpenCalculatorModal={() => setIsCalculatorOpen(true)}
         onOpenBackupModal={() => setIsBackupOpen(true)}
-        onLoadDemoData={handleLoadDemoData}
         isDarkMode={isDarkMode}
         onToggleTheme={handleToggleTheme}
       />
 
-      {/* Main App Container */}
       <main className="max-w-7xl mx-auto px-4 lg:px-8 py-6 space-y-6">
         
-        {/* Contextual Account Progress (Passing vs Payout Progress Bars) */}
         <AccountProgressCard
           account={activeAccount}
           trades={trades}
           onOpenEditAccount={() => setIsAccountModalOpen(true)}
         />
 
-        {/* Summary KPI Cards */}
         <SummaryCards stats={stats} />
 
-        {/* Dashboard Section Navigation Tabs */}
         <div className="flex items-center space-x-2 border-b border-[var(--gruv-border)] pb-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('calendar')}
@@ -200,11 +174,10 @@ export function App() {
             }`}
           >
             <BarChart2 className="w-4 h-4" />
-            <span>Setups &amp; Analytics</span>
+            <span>Mindset Analytics</span>
           </button>
         </div>
 
-        {/* Tab Content Panels */}
         {activeTab === 'calendar' && (
           <CalendarGrid
             trades={trades}
@@ -230,12 +203,10 @@ export function App() {
 
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-[var(--gruv-border)] py-6 mt-12 text-center text-xs text-[var(--gruv-muted)] font-mono">
-        <p>GRUVBOX GLASS JOURNAL • 100% Client-Side Local IndexedDB Storage • Deployable to GitHub Pages &amp; Vercel</p>
+        <p>GRUVBOX FUTURES JOURNAL • Local IndexedDB Storage</p>
       </footer>
 
-      {/* Modals */}
       <TradeEntryModal
         isOpen={isTradeEntryOpen}
         accounts={accounts}

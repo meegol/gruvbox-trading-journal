@@ -2,7 +2,6 @@ import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import type { Account, Trade } from '../types/journal';
 
-
 interface JournalDB extends DBSchema {
   accounts: {
     key: string;
@@ -16,7 +15,7 @@ interface JournalDB extends DBSchema {
   };
 }
 
-const DB_NAME = 'gruvbox-trading-journal-db';
+const DB_NAME = 'gruvbox-futures-journal-db';
 const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBPDatabase<JournalDB>> | null = null;
@@ -25,12 +24,10 @@ function getDB() {
   if (!dbPromise) {
     dbPromise = openDB<JournalDB>(DB_NAME, DB_VERSION, {
       upgrade(db) {
-        // Accounts store
         if (!db.objectStoreNames.contains('accounts')) {
           const accountStore = db.createObjectStore('accounts', { keyPath: 'id' });
           accountStore.createIndex('by-status', 'status');
         }
-        // Trades store
         if (!db.objectStoreNames.contains('trades')) {
           const tradeStore = db.createObjectStore('trades', { keyPath: 'id' });
           tradeStore.createIndex('by-account', 'accountId');
@@ -42,21 +39,20 @@ function getDB() {
   return dbPromise;
 }
 
-// DEFAULT INITIAL 50K EVAL ACCOUNT
 export const DEFAULT_50K_ACCOUNT: Account = {
   id: 'acc-50k-eval-default',
   name: 'Apex 50k Eval #1',
   type: 'eval',
   initialBalance: 50000,
   currentBalance: 50000,
-  profitTarget: 3000, // $3k profit target
-  maxDrawdown: 2500,  // $2.5k max drawdown limit
+  profitTarget: 3000,
+  maxDrawdown: 2500,
   minTradingDays: 5,
   payoutThreshold: 0,
   minPayoutBuffer: 50000,
   status: 'active',
   createdAt: new Date().toISOString(),
-  notes: 'My primary $50,000 Prop Firm evaluation account.',
+  notes: '50k Futures evaluation account',
 };
 
 export async function getAllAccounts(): Promise<Account[]> {
@@ -64,7 +60,6 @@ export async function getAllAccounts(): Promise<Account[]> {
     const db = await getDB();
     const accounts = await db.getAll('accounts');
     if (accounts.length === 0) {
-      // Seed default 50k eval account
       await db.put('accounts', DEFAULT_50K_ACCOUNT);
       return [DEFAULT_50K_ACCOUNT];
     }
@@ -85,7 +80,6 @@ export async function deleteAccount(id: string): Promise<void> {
   const tx = db.transaction(['accounts', 'trades'], 'readwrite');
   await tx.objectStore('accounts').delete(id);
   
-  // Delete all trades associated with this account
   const tradeIndex = tx.objectStore('trades').index('by-account');
   let cursor = await tradeIndex.openCursor(id);
   while (cursor) {

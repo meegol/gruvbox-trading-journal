@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import type { Trade, Account } from '../types/journal';
 import { X, Star, Maximize2, Trash2 } from 'lucide-react';
 
-
 interface TradeDetailModalProps {
   trade: Trade | null;
   accounts: Account[];
@@ -26,10 +25,10 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
   const entryD = new Date(trade.entryDate);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md overflow-y-auto">
-      <div className="glass-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative font-mono text-xs my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md overflow-y-auto font-mono text-xs">
+      <div className="glass-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative my-8">
         
-        {/* Modal Header */}
+        {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--gruv-border)] pb-4 mb-5">
           <div className="flex items-center space-x-3">
             <span className={`px-3 py-1 rounded-xl font-bold uppercase text-xs border ${
@@ -41,7 +40,7 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
             </span>
             <div>
               <h2 className="font-bold text-xl text-[var(--gruv-fg)]">
-                {trade.symbol} <span className="text-[var(--gruv-muted)] font-normal">({trade.assetClass})</span>
+                {trade.symbol} <span className="text-[var(--gruv-muted)] font-normal">(Futures)</span>
               </h2>
               <p className="text-[11px] text-[var(--gruv-muted)]">
                 {entryD.toLocaleDateString()} {entryD.toLocaleTimeString()} • {account?.name || 'Account'}
@@ -57,7 +56,7 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
           </button>
         </div>
 
-        {/* PnL & Key Stats Banner */}
+        {/* PnL & Stats Banner */}
         <div className={`p-4 rounded-xl mb-6 border flex flex-wrap items-center justify-between gap-4 ${
           isWin
             ? 'bg-[var(--gruv-green)]/10 border-[var(--gruv-green)]/40 text-[var(--gruv-green)]'
@@ -66,8 +65,8 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
             : 'bg-[var(--gruv-surface)] border-[var(--gruv-border)] text-[var(--gruv-fg)]'
         }`}>
           <div>
-            <span className="text-[var(--gruv-muted)] block text-[10px] uppercase">Net Profit / Loss</span>
-            <span className="font-bold text-2xl font-mono">
+            <span className="text-[var(--gruv-muted)] block text-[10px] uppercase">Net PnL</span>
+            <span className="font-bold text-2xl">
               {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
@@ -75,7 +74,7 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
           {trade.rMultiple !== undefined && trade.rMultiple !== null && (
             <div>
               <span className="text-[var(--gruv-muted)] block text-[10px] uppercase">Achieved R-Multiple</span>
-              <span className="font-bold text-xl font-mono">
+              <span className="font-bold text-xl">
                 {trade.rMultiple >= 0 ? '+' : ''}{trade.rMultiple.toFixed(2)}R
               </span>
             </div>
@@ -98,25 +97,37 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
 
         {/* Execution Details Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-[var(--gruv-bg)]/60 border border-[var(--gruv-border)] mb-6">
-          <div>
-            <span className="text-[var(--gruv-muted)] block text-[10px]">ENTRY PRICE</span>
-            <span className="font-bold text-sm text-[var(--gruv-fg)]">{trade.entryPrice}</span>
-          </div>
-
-          <div>
-            <span className="text-[var(--gruv-muted)] block text-[10px]">EXIT PRICE</span>
-            <span className="font-bold text-sm text-[var(--gruv-fg)]">{trade.exitPrice}</span>
-          </div>
-
-          <div>
-            <span className="text-[var(--gruv-muted)] block text-[10px]">POSITION SIZE</span>
-            <span className="font-bold text-sm text-[var(--gruv-fg)]">{trade.quantity}</span>
-          </div>
-
-          <div>
-            <span className="text-[var(--gruv-muted)] block text-[10px]">FEES / COMMISSIONS</span>
-            <span className="font-bold text-sm text-[var(--gruv-fg)]">${trade.fees.toFixed(2)}</span>
-          </div>
+          {trade.balanceBefore !== undefined && trade.balanceAfter !== undefined ? (
+            <>
+              <div>
+                <span className="text-[var(--gruv-muted)] block text-[10px]">BALANCE BEFORE</span>
+                <span className="font-bold text-sm text-[var(--gruv-fg)]">${trade.balanceBefore.toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-[var(--gruv-muted)] block text-[10px]">BALANCE AFTER</span>
+                <span className="font-bold text-sm text-[var(--gruv-fg)]">${trade.balanceAfter.toLocaleString()}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <span className="text-[var(--gruv-muted)] block text-[10px]">ENTRY PRICE</span>
+                <span className="font-bold text-sm text-[var(--gruv-fg)]">{trade.entryPrice}</span>
+              </div>
+              <div>
+                <span className="text-[var(--gruv-muted)] block text-[10px]">EXIT PRICE</span>
+                <span className="font-bold text-sm text-[var(--gruv-fg)]">{trade.exitPrice}</span>
+              </div>
+              <div>
+                <span className="text-[var(--gruv-muted)] block text-[10px]">CONTRACTS</span>
+                <span className="font-bold text-sm text-[var(--gruv-fg)]">{trade.quantity}</span>
+              </div>
+              <div>
+                <span className="text-[var(--gruv-muted)] block text-[10px]">FEES</span>
+                <span className="font-bold text-sm text-[var(--gruv-fg)]">${trade.fees.toFixed(2)}</span>
+              </div>
+            </>
+          )}
 
           {trade.stopLoss && (
             <div>
@@ -133,38 +144,24 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
           )}
         </div>
 
-        {/* Setup Tags */}
-        {trade.tags && trade.tags.length > 0 && (
-          <div className="mb-6">
-            <span className="text-[var(--gruv-muted)] block mb-1 text-[10px] uppercase">Strategy Setup Tags</span>
-            <div className="flex flex-wrap gap-2">
-              {trade.tags.map((tag, idx) => (
-                <span key={idx} className="px-2.5 py-1 rounded-lg bg-[var(--gruv-bg)] text-[var(--gruv-yellow)] border border-[var(--gruv-border)]">
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Pre & Post Notes */}
         <div className="space-y-4 mb-6">
           {trade.preTradeNotes && (
             <div className="p-3.5 rounded-xl bg-[var(--gruv-bg)]/40 border border-[var(--gruv-border)]">
-              <span className="text-[var(--gruv-yellow)] font-bold block mb-1">Pre-Trade Execution Plan:</span>
+              <span className="text-[var(--gruv-yellow)] font-bold block mb-1">Pre-Trade Setup Plan:</span>
               <p className="text-[var(--gruv-fg)] whitespace-pre-wrap">{trade.preTradeNotes}</p>
             </div>
           )}
 
           {trade.postTradeNotes && (
             <div className="p-3.5 rounded-xl bg-[var(--gruv-bg)]/40 border border-[var(--gruv-border)]">
-              <span className="text-[var(--gruv-green)] font-bold block mb-1">Post-Trade Review &amp; Lessons:</span>
+              <span className="text-[var(--gruv-green)] font-bold block mb-1">Post-Trade Review:</span>
               <p className="text-[var(--gruv-fg)] whitespace-pre-wrap">{trade.postTradeNotes}</p>
             </div>
           )}
         </div>
 
-        {/* Screenshot Image Attachment */}
+        {/* Screenshot Attachment */}
         {trade.screenshot && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
@@ -186,7 +183,7 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
           </div>
         )}
 
-        {/* Actions Footer */}
+        {/* Actions */}
         <div className="flex items-center justify-between pt-4 border-t border-[var(--gruv-border)]">
           <button
             onClick={() => {
@@ -211,7 +208,7 @@ export const TradeDetailModal: React.FC<TradeDetailModalProps> = ({
 
       </div>
 
-      {/* Lightbox Full-screen Zoom Modal */}
+      {/* Lightbox Zoom */}
       {isImageLightboxOpen && trade.screenshot && (
         <div 
           onClick={() => setIsImageLightboxOpen(false)}

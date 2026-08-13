@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import type { Account, Trade, AssetClass, TradeDirection, EmotionRating } from '../types/journal';
+import type { Account, Trade, TradeDirection, EmotionRating, FuturesSymbol } from '../types/journal';
+import { getFuturesPointValue } from '../utils/futures';
 import { X, Upload, Star, DollarSign, BarChart2 } from 'lucide-react';
 
 interface TradeEntryModalProps {
@@ -10,7 +11,7 @@ interface TradeEntryModalProps {
   onSaveTrade: (trade: Trade) => void;
 }
 
-const PRESET_TAGS = ['Breakout', 'ICT_FVG', 'FVG_Sweep', 'TrendFollow', 'Scalp', 'Swing', 'News', 'Mistake_FOMO', 'Mistake_Revenge', 'EarlyExit'];
+const FUTURES_PRESETS: FuturesSymbol[] = ['NQ', 'MNQ', 'ES', 'MES', 'YM', 'MYM', 'RTY', 'M2K', 'CL', 'GC'];
 
 export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
   isOpen,
@@ -30,32 +31,29 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
   const activeAccount = accounts.find((a) => a.id === accountId);
   const currentAccBal = activeAccount ? activeAccount.currentBalance : 50000;
 
-  // Balance Delta Mode Inputs
+  // Balance Delta Mode
   const [balanceBefore, setBalanceBefore] = useState<string>(currentAccBal.toString());
-  const [balanceAfter, setBalanceAfter] = useState<string>((currentAccBal + 1200).toString());
+  const [balanceAfter, setBalanceAfter] = useState<string>(currentAccBal.toString());
 
-  // Price & Quantity Mode Inputs
+  // Futures Execution Specs
   const [symbol, setSymbol] = useState<string>('NQ');
   const [direction, setDirection] = useState<TradeDirection>('long');
-  const [assetClass, setAssetClass] = useState<AssetClass>('futures');
-  const [entryPrice, setEntryPrice] = useState<string>('19500');
-  const [exitPrice, setExitPrice] = useState<string>('19560');
-  const [quantity, setQuantity] = useState<string>('2');
-  const [stopLoss, setStopLoss] = useState<string>('19470');
-  const [takeProfit, setTakeProfit] = useState<string>('19560');
-  const [fees, setFees] = useState<string>('8.50');
+  const [entryPrice, setEntryPrice] = useState<string>('');
+  const [exitPrice, setExitPrice] = useState<string>('');
+  const [quantity, setQuantity] = useState<string>('1');
+  const [stopLoss, setStopLoss] = useState<string>('');
+  const [takeProfit, setTakeProfit] = useState<string>('');
+  const [fees, setFees] = useState<string>('4.50');
 
   const [entryDate] = useState<string>(new Date().toISOString().slice(0, 16));
 
-  const [selectedTags, setSelectedTags] = useState<string[]>(['Breakout', 'ICT_FVG']);
-  const [customTagInput, setCustomTagInput] = useState<string>('');
   const [emotion, setEmotion] = useState<EmotionRating>('Disciplined');
   const [rating, setRating] = useState<number>(5);
   const [preTradeNotes, setPreTradeNotes] = useState<string>('');
   const [postTradeNotes, setPostTradeNotes] = useState<string>('');
   const [screenshot, setScreenshot] = useState<string | undefined>(undefined);
 
-  // Computations
+  // Dynamic PnL Math
   const numBalBefore = parseFloat(balanceBefore) || 0;
   const numBalAfter = parseFloat(balanceAfter) || 0;
 
@@ -69,13 +67,9 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
   if (entryMode === 'balance') {
     netPnl = numBalAfter - numBalBefore;
   } else {
-    let grossPnl = (numExit - numEntry) * numQty;
-    if (direction === 'short') grossPnl = (numEntry - numExit) * numQty;
-    if (assetClass === 'futures' && (symbol.toUpperCase().includes('NQ') || symbol.toUpperCase().includes('MNQ'))) {
-      grossPnl = (direction === 'long' ? numExit - numEntry : numEntry - numExit) * 20 * numQty;
-    } else if (assetClass === 'futures' && (symbol.toUpperCase().includes('ES') || symbol.toUpperCase().includes('MES'))) {
-      grossPnl = (direction === 'long' ? numExit - numEntry : numEntry - numExit) * 50 * numQty;
-    }
+    const pointMultiplier = getFuturesPointValue(symbol);
+    const pointDiff = direction === 'long' ? (numExit - numEntry) : (numEntry - numExit);
+    const grossPnl = pointDiff * pointMultiplier * numQty;
     netPnl = grossPnl - numFees;
   }
 
@@ -87,21 +81,6 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
       calculatedR = rewardDistance / riskDistance;
     }
   }
-
-  const toggleTag = (tag: string) => {
-    if (selectedTags.includes(tag)) {
-      setSelectedTags(selectedTags.filter((t) => t !== tag));
-    } else {
-      setSelectedTags([...selectedTags, tag]);
-    }
-  };
-
-  const handleAddCustomTag = () => {
-    if (customTagInput.trim() && !selectedTags.includes(customTagInput.trim())) {
-      setSelectedTags([...selectedTags, customTagInput.trim()]);
-      setCustomTagInput('');
-    }
-  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -116,14 +95,14 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!symbol) return;
+    if (!symbol.trim()) return;
 
     const newTrade: Trade = {
       id: `trd-${Date.now()}`,
       accountId,
-      symbol: symbol.toUpperCase(),
+      symbol: symbol.toUpperCase().trim(),
       direction,
-      assetClass,
+      assetClass: 'futures',
       entryPrice: entryMode === 'price' ? numEntry : undefined,
       exitPrice: entryMode === 'price' ? numExit : undefined,
       quantity: entryMode === 'price' ? numQty : 1,
@@ -133,12 +112,11 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
       takeProfit: parseFloat(takeProfit) || undefined,
       fees: entryMode === 'price' ? numFees : 0,
       pnl: netPnl,
-      pnlPercentage: (netPnl / (numBalBefore || 1)) * 100,
+      pnlPercentage: (netPnl / (numBalBefore || 50000)) * 100,
       rMultiple: calculatedR,
       entryDate,
       exitDate: entryDate,
       status: netPnl > 0.01 ? 'win' : netPnl < -0.01 ? 'loss' : 'breakeven',
-      tags: selectedTags,
       emotion,
       rating,
       preTradeNotes,
@@ -151,14 +129,14 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md overflow-y-auto">
-      <div className="glass-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 relative font-mono text-xs my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md overflow-y-auto font-mono text-xs">
+      <div className="glass-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 relative my-8">
         
-        {/* Modal Header */}
+        {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--gruv-border)] pb-4 mb-5">
           <div>
-            <h2 className="font-bold text-xl text-[var(--gruv-fg)]">LOG NEW TRADE</h2>
-            <p className="text-xs text-[var(--gruv-muted)]">Choose Balance Delta Mode or Price Execution Mode</p>
+            <h2 className="font-bold text-xl text-[var(--gruv-fg)]">LOG FUTURES TRADE</h2>
+            <p className="text-[11px] text-[var(--gruv-muted)]">Select contract &amp; entry mode</p>
           </div>
           <button
             onClick={onClose}
@@ -168,7 +146,7 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
 
           {/* Mode Switcher */}
           <div className="p-1 rounded-xl bg-[var(--gruv-bg)] border border-[var(--gruv-border)] grid grid-cols-2 gap-1">
@@ -177,7 +155,7 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
               onClick={() => setEntryMode('balance')}
               className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center space-x-2 transition-all ${
                 entryMode === 'balance'
-                  ? 'bg-[var(--gruv-yellow)] text-[#1d2021] shadow-md'
+                  ? 'bg-[var(--gruv-yellow)] text-[#1d2021]'
                   : 'text-[var(--gruv-muted)] hover:text-[var(--gruv-fg)]'
               }`}
             >
@@ -190,7 +168,7 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
               onClick={() => setEntryMode('price')}
               className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center space-x-2 transition-all ${
                 entryMode === 'price'
-                  ? 'bg-[var(--gruv-yellow)] text-[#1d2021] shadow-md'
+                  ? 'bg-[var(--gruv-yellow)] text-[#1d2021]'
                   : 'text-[var(--gruv-muted)] hover:text-[var(--gruv-fg)]'
               }`}
             >
@@ -199,52 +177,52 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
             </button>
           </div>
 
-          {/* Account & General Specs */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="text-[var(--gruv-muted)] block mb-1">Target Account</label>
-              <select
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
-              >
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name} (${acc.initialBalance.toLocaleString()})
-                  </option>
-                ))}
-              </select>
+          {/* Futures Symbol Selector */}
+          <div>
+            <label className="text-[var(--gruv-muted)] block mb-1">Futures Contract Symbol</label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {FUTURES_PRESETS.map((sym) => (
+                <button
+                  key={sym}
+                  type="button"
+                  onClick={() => setSymbol(sym)}
+                  className={`px-3 py-1.5 rounded-lg font-bold border transition-colors ${
+                    symbol.toUpperCase() === sym
+                      ? 'bg-[var(--gruv-yellow)]/20 text-[var(--gruv-yellow)] border-[var(--gruv-yellow)]'
+                      : 'bg-[var(--gruv-bg)] text-[var(--gruv-muted)] border-[var(--gruv-border)]'
+                  }`}
+                >
+                  {sym}
+                </button>
+              ))}
             </div>
-
-            <div>
-              <label className="text-[var(--gruv-muted)] block mb-1">Symbol (e.g. NQ, ES, BTC)</label>
-              <input
-                type="text"
-                required
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
-                placeholder="NQ"
-                className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none uppercase font-bold"
-              />
-            </div>
-
-            <div>
-              <label className="text-[var(--gruv-muted)] block mb-1">Asset Class</label>
-              <select
-                value={assetClass}
-                onChange={(e: any) => setAssetClass(e.target.value)}
-                className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
-              >
-                <option value="futures">Futures</option>
-                <option value="crypto">Crypto</option>
-                <option value="forex">Forex</option>
-                <option value="stocks">Stocks</option>
-                <option value="options">Options</option>
-              </select>
-            </div>
+            <input
+              type="text"
+              required
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value)}
+              placeholder="Or enter symbol (e.g. NQ, MNQ, ES, MES, YM, MYM)"
+              className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none uppercase font-bold"
+            />
           </div>
 
-          {/* BALANCE DELTA MODE INPUTS */}
+          {/* Target Account */}
+          <div>
+            <label className="text-[var(--gruv-muted)] block mb-1">Target Account</label>
+            <select
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
+            >
+              {accounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.name} (${acc.initialBalance.toLocaleString()})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* BALANCE DELTA MODE */}
           {entryMode === 'balance' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-[var(--gruv-bg)]/60 border border-[var(--gruv-border)]">
               <div>
@@ -255,7 +233,7 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
                   required
                   value={balanceBefore}
                   onChange={(e) => setBalanceBefore(e.target.value)}
-                  className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none font-bold"
+                  className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none font-bold text-sm"
                 />
               </div>
 
@@ -267,13 +245,13 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
                   required
                   value={balanceAfter}
                   onChange={(e) => setBalanceAfter(e.target.value)}
-                  className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none font-bold"
+                  className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none font-bold text-sm"
                 />
               </div>
             </div>
           ) : (
-            /* PRICE & CONTRACT EXECUTION MODE INPUTS */
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            /* PRICE & CONTRACT MODE */
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <label className="text-[var(--gruv-muted)] block mb-1">Entry Price</label>
                 <input
@@ -299,7 +277,7 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
               </div>
 
               <div>
-                <label className="text-[var(--gruv-muted)] block mb-1">Quantity / Contracts</label>
+                <label className="text-[var(--gruv-muted)] block mb-1">Contracts</label>
                 <input
                   type="number"
                   step="any"
@@ -323,37 +301,9 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
             </div>
           )}
 
-          {/* Risk Management (Stop Loss & Take Profit) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-[var(--gruv-muted)] block mb-1">Stop Loss Price</label>
-              <input
-                type="number"
-                step="any"
-                value={stopLoss}
-                onChange={(e) => setStopLoss(e.target.value)}
-                placeholder="Optional SL"
-                className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-[var(--gruv-muted)] block mb-1">Take Profit Price</label>
-              <input
-                type="number"
-                step="any"
-                value={takeProfit}
-                onChange={(e) => setTakeProfit(e.target.value)}
-                placeholder="Optional TP"
-                className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
-              />
-            </div>
-          </div>
-
           {/* Direction Toggle */}
           <div>
             <label className="text-[var(--gruv-muted)] block mb-1">Trade Direction</label>
-
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -380,77 +330,71 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
             </div>
           </div>
 
-          {/* Calculated Net PnL Preview Banner */}
+          {/* Risk Management (SL & TP) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[var(--gruv-muted)] block mb-1">Stop Loss Price (Optional)</label>
+              <input
+                type="number"
+                step="any"
+                value={stopLoss}
+                onChange={(e) => setStopLoss(e.target.value)}
+                placeholder="SL Price"
+                className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-[var(--gruv-muted)] block mb-1">Take Profit Price (Optional)</label>
+              <input
+                type="number"
+                step="any"
+                value={takeProfit}
+                onChange={(e) => setTakeProfit(e.target.value)}
+                placeholder="TP Price"
+                className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Net PnL Preview Banner */}
           <div className="p-4 rounded-xl bg-[var(--gruv-bg)]/80 border border-[var(--gruv-border)] flex items-center justify-between">
             <div>
-              <span className="text-[var(--gruv-muted)] block text-[10px]">PREVIEW NET PnL (AFTER FEES &amp; SLIPPAGE)</span>
+              <span className="text-[var(--gruv-muted)] block text-[10px]">NET PnL</span>
               <span className={`font-bold text-xl ${netPnl >= 0 ? 'text-[var(--gruv-green)]' : 'text-[var(--gruv-red)]'}`}>
                 {netPnl >= 0 ? '+' : ''}${netPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
-          </div>
-
-          {/* Strategy Tags */}
-          <div>
-            <label className="text-[var(--gruv-muted)] block mb-1">Strategy Setups &amp; Tags</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {PRESET_TAGS.map((tag) => {
-                const isSelected = selectedTags.includes(tag);
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => toggleTag(tag)}
-                    className={`px-2.5 py-1 rounded-lg text-xs transition-colors border ${
-                      isSelected
-                        ? 'bg-[var(--gruv-yellow)]/20 text-[var(--gruv-yellow)] border-[var(--gruv-yellow)]'
-                        : 'bg-[var(--gruv-bg)] text-[var(--gruv-muted)] border-[var(--gruv-border)]'
-                    }`}
-                  >
-                    #{tag}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                value={customTagInput}
-                onChange={(e) => setCustomTagInput(e.target.value)}
-                placeholder="Add custom tag..."
-                className="bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-1.5 rounded-lg border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={handleAddCustomTag}
-                className="px-3 py-1.5 rounded-lg bg-[var(--gruv-surface)] text-[var(--gruv-yellow)] border border-[var(--gruv-border)] hover:bg-[var(--gruv-yellow)]/10"
-              >
-                + Tag
-              </button>
-            </div>
+            {calculatedR !== undefined && (
+              <div>
+                <span className="text-[var(--gruv-muted)] block text-[10px]">R-MULTIPLE</span>
+                <span className={`font-bold text-lg ${calculatedR >= 0 ? 'text-[var(--gruv-green)]' : 'text-[var(--gruv-red)]'}`}>
+                  {calculatedR >= 0 ? '+' : ''}{calculatedR.toFixed(2)}R
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Psychology Rating & Emotion */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[var(--gruv-muted)] block mb-1">Emotional Mindset</label>
+              <label className="text-[var(--gruv-muted)] block mb-1">Execution Mindset</label>
               <select
                 value={emotion}
                 onChange={(e: any) => setEmotion(e.target.value)}
                 className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] px-3 py-2 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
               >
-                <option value="Disciplined">Disciplined (Systematic execution)</option>
+                <option value="Disciplined">Disciplined</option>
                 <option value="Calm">Calm &amp; Patient</option>
-                <option value="FOMO">FOMO (Chased entry)</option>
-                <option value="Revenge">Revenge Trade (Forced position)</option>
-                <option value="Hesitant">Hesitant (Late exit/entry)</option>
-                <option value="Greedy">Greedy (Held past target)</option>
+                <option value="FOMO">FOMO</option>
+                <option value="Revenge">Revenge Trade</option>
+                <option value="Hesitant">Hesitant</option>
+                <option value="Greedy">Greedy</option>
               </select>
             </div>
 
             <div>
-              <label className="text-[var(--gruv-muted)] block mb-1">Execution Quality (1-5 Stars)</label>
+              <label className="text-[var(--gruv-muted)] block mb-1">Execution Rating</label>
               <div className="flex items-center space-x-2 pt-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -466,33 +410,34 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
             </div>
           </div>
 
-          {/* Notes & Screenshot */}
+          {/* Pre-Trade Setup Plan & Post-Trade Review */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-[var(--gruv-muted)] block mb-1">Pre-Trade Setup Plan</label>
               <textarea
-                rows={2}
+                rows={3}
                 value={preTradeNotes}
                 onChange={(e) => setPreTradeNotes(e.target.value)}
-                placeholder="Key levels, liquidity sweeps..."
+                placeholder="Key levels, liquidity sweeps, trade plan..."
                 className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] p-3 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-[var(--gruv-muted)] block mb-1">Post-Trade Review &amp; Lessons</label>
+              <label className="text-[var(--gruv-muted)] block mb-1">Post-Trade Review</label>
               <textarea
-                rows={2}
+                rows={3}
                 value={postTradeNotes}
                 onChange={(e) => setPostTradeNotes(e.target.value)}
-                placeholder="What went right or wrong?"
+                placeholder="Trade review and execution feedback..."
                 className="w-full bg-[var(--gruv-bg)] text-[var(--gruv-fg)] p-3 rounded-xl border border-[var(--gruv-border)] focus:border-[var(--gruv-yellow)] focus:outline-none"
               />
             </div>
           </div>
 
+          {/* Screenshot Upload */}
           <div>
-            <label className="text-[var(--gruv-muted)] block mb-1">Chart Screenshot Attachment</label>
+            <label className="text-[var(--gruv-muted)] block mb-1">Chart Screenshot</label>
             {screenshot ? (
               <div className="relative rounded-xl overflow-hidden border border-[var(--gruv-border)]">
                 <img src={screenshot} alt="Chart Screenshot" className="w-full max-h-36 object-cover" />
@@ -507,12 +452,13 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
             ) : (
               <label className="flex items-center justify-center p-4 rounded-xl border border-dashed border-[var(--gruv-border)] hover:border-[var(--gruv-yellow)] cursor-pointer bg-[var(--gruv-bg)]/40 transition-colors space-x-2">
                 <Upload className="w-4 h-4 text-[var(--gruv-yellow)]" />
-                <span className="text-xs text-[var(--gruv-fg)]">Upload chart screenshot (PNG, JPG, WEBP)</span>
+                <span className="text-xs text-[var(--gruv-fg)]">Attach chart screenshot</span>
                 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
               </label>
             )}
           </div>
 
+          {/* Actions */}
           <div className="flex items-center justify-end space-x-3 pt-4 border-t border-[var(--gruv-border)]">
             <button
               type="button"
@@ -523,7 +469,7 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-6 py-2 rounded-xl bg-gradient-to-r from-[var(--gruv-yellow)] to-[var(--gruv-orange)] text-[#1d2021] font-bold shadow-md hover:brightness-110"
+              className="px-6 py-2 rounded-xl bg-[var(--gruv-yellow)] text-[#1d2021] font-bold shadow-md hover:brightness-110"
             >
               Save Trade Entry
             </button>
