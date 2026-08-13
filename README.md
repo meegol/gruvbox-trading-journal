@@ -1,6 +1,7 @@
-# Gruvbox Futures Journal
+# migo.nq
 
 A single-user, offline-first futures trading journal with a Gruvbox theme. Built for tracking prop firm evaluations and funded accounts.
+
 
 ## Features
 

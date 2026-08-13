@@ -204,8 +204,9 @@ export function App() {
       </main>
 
       <footer className="border-t border-[var(--gruv-border)] py-6 mt-12 text-center text-xs text-[var(--gruv-muted)] font-mono">
-        <p>GRUVBOX FUTURES JOURNAL • Local IndexedDB Storage</p>
+        <p>migo.nq</p>
       </footer>
+
 
       <TradeEntryModal
         isOpen={isTradeEntryOpen}

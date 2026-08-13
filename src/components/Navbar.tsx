@@ -43,11 +43,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             <TrendingUp className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div>
-            <h1 className="font-bold text-base tracking-tight text-[var(--gruv-fg)] font-mono">
-              GRUVBOX <span className="text-[var(--gruv-yellow)]">FUTURES</span>
+            <h1 className="font-bold text-lg tracking-tight text-[var(--gruv-fg)] font-mono">
+              migo.<span className="text-[var(--gruv-yellow)]">nq</span>
             </h1>
-            <p className="text-[11px] text-[var(--gruv-muted)] font-mono">Personal Futures Journal</p>
           </div>
+
         </div>
 
         {/* Account Switcher */}
