@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --gruv-bg: #1d2021;
+    --gruv-bg-soft: #282828;
+    --gruv-surface: rgba(40, 40, 40, 0.75);
+    --gruv-surface-solid: #282828;
+    --gruv-border: rgba(60, 56, 54, 0.6);
+    --gruv-border-solid: #3c3836;
+    --gruv-fg: #ebdbb2;
+    --gruv-muted: #a89984;
+    
+    --gruv-green: #b8bb26;
+    --gruv-red: #fb4934;
+    --gruv-yellow: #fabd2f;
+    --gruv-orange: #fe8019;
+    --gruv-blue: #83a598;
+    --gruv-purple: #d3869b;
+
+    --glass-blur: 16px;
+  }
+
+  .theme-light {
+    --gruv-bg: #fbf1c7;
+    --gruv-bg-soft: #f2e5bc;
+    --gruv-surface: rgba(242, 229, 188, 0.82);
+    --gruv-surface-solid: #f2e5bc;
+    --gruv-border: rgba(213, 196, 161, 0.8);
+    --gruv-border-solid: #d5c4a1;
+    --gruv-fg: #282828;
+    --gruv-muted: #7c6f64;
+
+    --gruv-green: #98971a;
+    --gruv-red: #cc241d;
+    --gruv-yellow: #d79921;
+    --gruv-orange: #d65d0e;
+    --gruv-blue: #458588;
+    --gruv-purple: #b16286;
+  }
+
+  body {
+    background-color: var(--gruv-bg);
+    color: var(--gruv-fg);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    overflow-x: hidden;
+  }
+}
+
+/* Glassmorphism utility components */
+.glass-panel {
+  background-color: var(--gruv-surface);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--gruv-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 1rem;
+}
+
+.glass-panel-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel-hover:hover {
+  border-color: rgba(250, 189, 47, 0.4);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5), 0 0 15px rgba(250, 189, 47, 0.15);
+  transform: translateY(-2px);
+}
+
+.glass-button {
+  background-color: rgba(60, 56, 54, 0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--gruv-border);
+  color: var(--gruv-fg);
+  transition: all 0.2s ease;
+}
+
+.glass-button:hover {
+  background-color: rgba(80, 73, 69, 0.7);
+  border-color: var(--gruv-yellow);
+  color: var(--gruv-yellow);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gruv-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gruv-border-solid);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gruv-muted);
+}
