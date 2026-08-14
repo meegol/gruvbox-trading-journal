@@ -6,7 +6,8 @@ import {
   Database, 
   Sun, 
   Moon, 
-  FolderPlus
+  FolderPlus,
+  Lock
 } from 'lucide-react';
 
 
@@ -20,6 +21,7 @@ interface NavbarProps {
   onOpenBackupModal: () => void;
   isDarkMode: boolean;
   onToggleTheme: () => void;
+  onLockApp: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -32,7 +34,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenBackupModal,
   isDarkMode,
   onToggleTheme,
+  onLockApp,
 }) => {
+
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--gruv-border)] bg-[var(--gruv-bg-soft)]/80 backdrop-blur-md px-4 lg:px-8 py-3 transition-colors">
       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
@@ -99,6 +103,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="glass-button p-2 rounded-xl hover:text-[var(--gruv-yellow)] transition-colors"
           >
             <Database className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={onLockApp}
+            title="Lock Vault"
+            className="glass-button p-2 rounded-xl hover:text-[var(--gruv-yellow)] transition-colors"
+          >
+            <Lock className="w-4 h-4" />
           </button>
 
           <button
