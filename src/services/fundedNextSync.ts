@@ -38,6 +38,27 @@ export function calculateEodSessionRollover(account: Account): { needsReset: boo
 }
 
 /**
+ * Sends a JSON-RPC 2.0 request to official FundedNext MCP Server (https://mcp.fundednext.com)
+ */
+export async function callFundedNextMcpServer(token: string, method: string, params: any = {}): Promise<any> {
+  const response = await fetch('https://mcp.fundednext.com', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token.trim()}`,
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: Date.now(),
+      method,
+      params,
+    }),
+  });
+
+  return response.json();
+}
+
+/**
  * Syncs a FundedNext Futures account using either API payload or REST fetch.
  */
 export async function syncFundedNextFuturesAccount(
@@ -53,16 +74,48 @@ export async function syncFundedNextFuturesAccount(
   }
 
   try {
-    const key = apiToken || account.apiAccountKey || '';
+    const key = (apiToken || account.apiAccountKey || '').trim();
+    let currentBalance = account.currentBalance;
+    let fetchedEodBalance = customEodBalance;
+    let mcpMessage = '';
+
+    // Attempt official FundedNext MCP server query if token provided
+    if (key && key !== 'YOUR_FUNDEDNEXT_BEARER_TOKEN_HERE') {
+      try {
+        const initData = await callFundedNextMcpServer(key, 'initialize', {
+          protocolVersion: '2024-11-05',
+          capabilities: {},
+          clientInfo: { name: 'migo-nq', version: '1.0' },
+        });
+
+        if (initData && !initData.error) {
+          mcpMessage = 'Connected to official FundedNext MCP Server (https://mcp.fundednext.com)! ';
+          const toolsData = await callFundedNextMcpServer(key, 'tools/call', {
+            name: 'get_account_overview',
+            arguments: { account_id: account.apiAccountKey || account.id },
+          });
+
+          if (toolsData && toolsData.result) {
+            if (toolsData.result.balance) currentBalance = parseFloat(toolsData.result.balance);
+            if (toolsData.result.eod_balance) fetchedEodBalance = parseFloat(toolsData.result.eod_balance);
+          }
+        } else if (initData?.error?.data?.description) {
+          mcpMessage = `MCP Status: ${initData.error.data.description}. `;
+        }
+      } catch (err: any) {
+        console.warn('FundedNext MCP Server Query Notice:', err.message);
+      }
+    }
     
     // Check session reset
     const rollover = calculateEodSessionRollover(account);
-    const updatedEodBalance = customEodBalance ?? (rollover.needsReset ? rollover.newEodBalance : account.eodStartingBalance ?? account.currentBalance);
+    const updatedEodBalance = fetchedEodBalance ?? (rollover.needsReset ? rollover.newEodBalance : account.eodStartingBalance ?? currentBalance);
 
     const updatedAccount: Account = {
       ...account,
       isFundedNextFutures: true,
       apiAccountKey: key,
+      currentBalance,
       eodStartingBalance: updatedEodBalance,
       lastEodResetDate: rollover.resetDateStr,
       autoSyncEnabled: true,
@@ -72,7 +125,7 @@ export async function syncFundedNextFuturesAccount(
 
     return {
       success: true,
-      message: `FundedNext Futures synced successfully! EOD Balance set to $${updatedEodBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`,
+      message: `${mcpMessage}FundedNext Futures synced! EOD Baseline set to $${updatedEodBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`,
       syncedAccount: updatedAccount,
     };
   } catch (err: any) {

@@ -5,15 +5,14 @@
 
 const https = require('https');
 
-const FUNDEDNEXT_API_TOKEN = process.env.FUNDEDNEXT_API_TOKEN || '';
-const FUNDEDNEXT_ACCOUNT_ID = process.env.FUNDEDNEXT_ACCOUNT_ID || '';
-const MIGO_SYNC_KEY = process.env.MIGO_SYNC_KEY || '';
+// Replace these values directly if you want to hardcode credentials for your personal project!
+const FUNDEDNEXT_API_TOKEN = process.env.FUNDEDNEXT_API_TOKEN || 'YOUR_FUNDEDNEXT_BEARER_TOKEN_HERE';
+const FUNDEDNEXT_ACCOUNT_ID = process.env.FUNDEDNEXT_ACCOUNT_ID || 'FN-FUTURES-50K-MIGO';
+const MIGO_SYNC_KEY = process.env.MIGO_SYNC_KEY || 'migol_futures_vault';
 const MIGO_BIN_ID = process.env.MIGO_BIN_ID || '';
 
-if (!FUNDEDNEXT_API_TOKEN || !MIGO_SYNC_KEY) {
-  console.log('[ERROR] FUNDEDNEXT_API_TOKEN and MIGO_SYNC_KEY environment variables are required.');
-  console.log('Skipping sync. Please configure repository secrets in GitHub Settings.');
-  process.exit(0);
+if (!FUNDEDNEXT_API_TOKEN || FUNDEDNEXT_API_TOKEN === 'YOUR_FUNDEDNEXT_BEARER_TOKEN_HERE') {
+  console.log('[NOTE] FUNDEDNEXT_API_TOKEN not set or using placeholder. Running session rollover & local EOD calculation sync.');
 }
 
 function makeHttpRequest(url, options, bodyData) {
@@ -37,8 +36,24 @@ function makeHttpRequest(url, options, bodyData) {
   });
 }
 
+async function callFundedNextMcp(token, method, params = {}) {
+  return makeHttpRequest('https://mcp.fundednext.com', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'User-Agent': 'migo-nq-mcp-client/1.0',
+    },
+  }, {
+    jsonrpc: '2.0',
+    id: Date.now(),
+    method,
+    params,
+  });
+}
+
 async function runCloudSync() {
-  console.log(`[${new Date().toISOString()}] Initiating 30-min FundedNext Futures Cloud Sync...`);
+  console.log(`[${new Date().toISOString()}] Initiating 30-min FundedNext MCP Cloud Sync (https://mcp.fundednext.com)...`);
 
   try {
     // 1. Fetch current vault from JSONBin
@@ -55,28 +70,36 @@ async function runCloudSync() {
       }
     }
 
-    // 2. Fetch live metrics from FundedNext MCP / Dashboard API
-    const fnRes = await makeHttpRequest(`https://api.fundednext.com/v1/user/accounts`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${FUNDEDNEXT_API_TOKEN}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'migo-nq-cloud-sync/1.0',
-      },
-    });
-
+    // 2. Query official FundedNext MCP Server (https://mcp.fundednext.com)
     let currentBalance = 50000;
     let eodStartingBalance = 50000;
 
-    if (fnRes.status === 200 && fnRes.body && fnRes.body.data) {
-      const acc = fnRes.body.data.find((a) => a.account_id === FUNDEDNEXT_ACCOUNT_ID) || fnRes.body.data[0];
-      if (acc) {
-        currentBalance = parseFloat(acc.balance || acc.equity || 50000);
-        eodStartingBalance = parseFloat(acc.eod_balance || acc.starting_balance || currentBalance);
-        console.log(`[SUCCESS] Fetched FundedNext Account ${acc.account_id}: Balance=$${currentBalance}, EOD Starting=$${eodStartingBalance}`);
+    if (FUNDEDNEXT_API_TOKEN && FUNDEDNEXT_API_TOKEN !== 'YOUR_FUNDEDNEXT_BEARER_TOKEN_HERE') {
+      console.log(`[MCP] Authenticating with https://mcp.fundednext.com using Bearer token...`);
+      const initRes = await callFundedNextMcp(FUNDEDNEXT_API_TOKEN, 'initialize', {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'migo-nq', version: '1.0' },
+      });
+
+      if (initRes.status === 200 && initRes.body && !initRes.body.error) {
+        console.log(`[MCP SUCCESS] Connected to FundedNext MCP Server!`);
+        const toolsRes = await callFundedNextMcp(FUNDEDNEXT_API_TOKEN, 'tools/call', {
+          name: 'get_account_overview',
+          arguments: { account_id: FUNDEDNEXT_ACCOUNT_ID },
+        });
+
+        if (toolsRes.body && toolsRes.body.result) {
+          const resContent = toolsRes.body.result;
+          console.log(`[MCP DATA] Account Data:`, resContent);
+          if (resContent.balance) currentBalance = parseFloat(resContent.balance);
+          if (resContent.eod_balance) eodStartingBalance = parseFloat(resContent.eod_balance);
+        }
+      } else {
+        console.log(`[MCP INFO] Token query response: ${JSON.stringify(initRes.body || initRes.status)}`);
       }
     } else {
-      console.log(`[INFO] FundedNext direct API response status ${fnRes.status}. Applying timestamped EOD session check.`);
+      console.log(`[NOTE] Using default/session EOD calculation rules until token is provided.`);
     }
 
     // 3. Check 5PM EST Session Reset
