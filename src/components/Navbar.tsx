@@ -7,7 +7,8 @@ import {
   Sun, 
   Moon, 
   FolderPlus,
-  Lock
+  Lock,
+  RefreshCw
 } from 'lucide-react';
 
 
@@ -19,6 +20,7 @@ interface NavbarProps {
   onOpenAccountModal: () => void;
   onOpenCalculatorModal: () => void;
   onOpenBackupModal: () => void;
+  onOpenFundedNextSyncModal: () => void;
   isDarkMode: boolean;
   onToggleTheme: () => void;
   onLockApp: () => void;
@@ -32,6 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAccountModal,
   onOpenCalculatorModal,
   onOpenBackupModal,
+  onOpenFundedNextSyncModal,
   isDarkMode,
   onToggleTheme,
   onLockApp,
@@ -52,8 +55,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </h1>
           </div>
         </div>
-
-
 
         {/* Account Switcher */}
         <div className="flex items-center space-x-2 bg-[var(--gruv-surface)] p-1.5 rounded-xl border border-[var(--gruv-border)]">
@@ -87,6 +88,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <PlusCircle className="w-4 h-4 stroke-[2.5]" />
             <span>Log Trade</span>
+          </button>
+
+          <button
+            onClick={onOpenFundedNextSyncModal}
+            title="FundedNext Futures Sync & EOD Engine"
+            className="glass-button p-2 rounded-xl text-[var(--gruv-yellow)] hover:bg-[var(--gruv-yellow)]/10 transition-colors flex items-center space-x-1 font-mono text-xs font-bold"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span className="hidden md:inline">FN Sync</span>
           </button>
 
           <button

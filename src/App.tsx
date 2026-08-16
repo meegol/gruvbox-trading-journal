@@ -25,6 +25,7 @@ import { AccountManagerModal } from './components/AccountManagerModal';
 import { CalculatorModal } from './components/CalculatorModal';
 import { BackupModal } from './components/BackupModal';
 import { LockScreenModal } from './components/LockScreenModal';
+import { FundedNextSyncModal } from './components/FundedNextSyncModal';
 
 import { Calendar, TrendingUp, Table, BarChart2 } from 'lucide-react';
 
@@ -45,6 +46,7 @@ export function App() {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
+  const [isFundedNextSyncOpen, setIsFundedNextSyncOpen] = useState(false);
 
   // Main Dashboard Tab
   const [activeTab, setActiveTab] = useState<'calendar' | 'equity' | 'log' | 'analytics'>('calendar');
@@ -152,6 +154,7 @@ export function App() {
         onOpenAccountModal={() => setIsAccountModalOpen(true)}
         onOpenCalculatorModal={() => setIsCalculatorOpen(true)}
         onOpenBackupModal={() => setIsBackupOpen(true)}
+        onOpenFundedNextSyncModal={() => setIsFundedNextSyncOpen(true)}
         isDarkMode={isDarkMode}
         onToggleTheme={handleToggleTheme}
         onLockApp={handleLockVault}
@@ -287,6 +290,17 @@ export function App() {
         isOpen={isBackupOpen}
         onClose={() => setIsBackupOpen(false)}
         onRefreshData={reloadData}
+      />
+
+      <FundedNextSyncModal
+        isOpen={isFundedNextSyncOpen}
+        accounts={accounts}
+        activeAccountId={activeAccountId}
+        onClose={() => setIsFundedNextSyncOpen(false)}
+        onAccountUpdated={async (updatedAccount) => {
+          await saveAccount(updatedAccount);
+          await reloadData();
+        }}
       />
 
     </div>

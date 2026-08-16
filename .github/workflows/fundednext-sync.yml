@@ -1,0 +1,28 @@
+name: FundedNext 30-Min Automated Cloud Sync
+
+on:
+  schedule:
+    # Runs every 30 minutes 24/7 without needing your PC open
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI anytime
+
+jobs:
+  sync-fundednext:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Execute FundedNext EOD Cloud Sync
+        env:
+          FUNDEDNEXT_API_TOKEN: ${{ secrets.FUNDEDNEXT_API_TOKEN }}
+          FUNDEDNEXT_ACCOUNT_ID: ${{ secrets.FUNDEDNEXT_ACCOUNT_ID }}
+          MIGO_SYNC_KEY: ${{ secrets.MIGO_SYNC_KEY }}
+          MIGO_BIN_ID: ${{ secrets.MIGO_BIN_ID }}
+        run: node scripts/fundednext-cron-sync.js

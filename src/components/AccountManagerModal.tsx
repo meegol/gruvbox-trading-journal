@@ -21,24 +21,39 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
   if (!isOpen) return null;
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState<string>('Apex 50k Eval #1');
+  const [name, setName] = useState<string>('50k FundedNext Eval');
   const [type, setType] = useState<AccountType>('eval');
   const [initialBalance, setInitialBalance] = useState<string>('50000');
   const [profitTarget, setProfitTarget] = useState<string>('3000');
-  const [maxDrawdown, setMaxDrawdown] = useState<string>('2500');
-  const [dailyLossLimit, setDailyLossLimit] = useState<string>('500');
+  const [maxDrawdown, setMaxDrawdown] = useState<string>('2000');
+  const [dailyLossLimit, setDailyLossLimit] = useState<string>('1000');
   const [payoutThreshold, setPayoutThreshold] = useState<string>('1500');
+  const [isFundedNextFutures, setIsFundedNextFutures] = useState<boolean>(true);
+  const [eodStartingBalance, setEodStartingBalance] = useState<string>('50000');
   const [notes, setNotes] = useState<string>('');
+
+  const applyPreset = (presetName: string, initial: number, target: number, maxDd: number, dailyDd: number) => {
+    setName(presetName);
+    setType('eval');
+    setInitialBalance(initial.toString());
+    setProfitTarget(target.toString());
+    setMaxDrawdown(maxDd.toString());
+    setDailyLossLimit(dailyDd.toString());
+    setIsFundedNextFutures(true);
+    setEodStartingBalance(initial.toString());
+  };
 
   const resetForm = () => {
     setEditingId(null);
-    setName('Apex 50k Eval #1');
+    setName('50k FundedNext Eval');
     setType('eval');
     setInitialBalance('50000');
     setProfitTarget('3000');
-    setMaxDrawdown('2500');
-    setDailyLossLimit('500');
+    setMaxDrawdown('2000');
+    setDailyLossLimit('1000');
     setPayoutThreshold('1500');
+    setIsFundedNextFutures(true);
+    setEodStartingBalance('50000');
     setNotes('');
   };
 
@@ -49,8 +64,10 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
     setInitialBalance(acc.initialBalance.toString());
     setProfitTarget(acc.profitTarget.toString());
     setMaxDrawdown(acc.maxDrawdown.toString());
-    setDailyLossLimit((acc.dailyLossLimit || 500).toString());
+    setDailyLossLimit((acc.dailyLossLimit || 1000).toString());
     setPayoutThreshold((acc.payoutThreshold || 1500).toString());
+    setIsFundedNextFutures(!!acc.isFundedNextFutures);
+    setEodStartingBalance((acc.eodStartingBalance ?? acc.currentBalance ?? acc.initialBalance).toString());
     setNotes(acc.notes || '');
   };
 
@@ -60,9 +77,10 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
 
     const numBal = parseFloat(initialBalance) || 50000;
     const numTarget = parseFloat(profitTarget) || 0;
-    const numDrawdown = parseFloat(maxDrawdown) || 2500;
-    const numDailyLoss = parseFloat(dailyLossLimit) || 500;
+    const numDrawdown = parseFloat(maxDrawdown) || 2000;
+    const numDailyLoss = parseFloat(dailyLossLimit) || 1000;
     const numPayout = parseFloat(payoutThreshold) || 1500;
+    const numEod = parseFloat(eodStartingBalance) || numBal;
 
     const newAcc: Account = {
       id: editingId || `acc-${Date.now()}`,
@@ -76,6 +94,8 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
       maxDrawdown: numDrawdown,
       dailyLossLimit: numDailyLoss,
       payoutThreshold: numPayout,
+      isFundedNextFutures,
+      eodStartingBalance: numEod,
       status: 'active',
       createdAt: editingId
         ? accounts.find((a) => a.id === editingId)?.createdAt || new Date().toISOString()
@@ -91,15 +111,14 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md overflow-y-auto">
       <div className="glass-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative font-mono text-xs my-8">
         
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[var(--gruv-border)] pb-4 mb-5">
-          <div>
-            <h2 className="font-bold text-xl text-[var(--gruv-fg)]">PROP FIRM &amp; ACCOUNT MANAGER</h2>
-            <p className="text-xs text-[var(--gruv-muted)]">Configure evaluations, funded accounts ($50k defaults), and drawdown limits</p>
-          </div>
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 mb-4 border-b border-[var(--gruv-border)]">
+          <h2 className="text-base font-bold tracking-wider text-[var(--gruv-fg)]">
+            ACCOUNT SPECS & PROP FIRM MANAGER
+          </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-[var(--gruv-muted)] hover:text-[var(--gruv-fg)] hover:bg-[var(--gruv-bg)] transition-colors"
+            className="text-[var(--gruv-muted)] hover:text-[var(--gruv-fg)] transition-colors p-1"
           >
             <X className="w-5 h-5" />
           </button>
@@ -107,12 +126,14 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
 
         {/* Existing Accounts List */}
         <div className="mb-6">
-          <h3 className="font-bold text-xs text-[var(--gruv-yellow)] uppercase tracking-wider mb-3">Your Accounts ({accounts.length})</h3>
-          <div className="space-y-2.5">
+          <h3 className="font-bold text-xs text-[var(--gruv-muted)] uppercase mb-3">
+            YOUR REGISTERED ACCOUNTS ({accounts.length})
+          </h3>
+          <div className="space-y-2">
             {accounts.map((acc) => (
               <div
                 key={acc.id}
-                className="p-3.5 rounded-xl bg-[var(--gruv-surface)] border border-[var(--gruv-border)] flex items-center justify-between"
+                className="p-3 rounded-xl bg-[var(--gruv-bg)] border border-[var(--gruv-border)] flex items-center justify-between"
               >
                 <div>
                   <div className="flex items-center space-x-2">
@@ -126,9 +147,14 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
                     }`}>
                       {acc.type === 'eval' ? 'Evaluation' : acc.type === 'funded' ? 'Funded' : 'Personal'}
                     </span>
+                    {acc.isFundedNextFutures && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--gruv-yellow)] text-[var(--gruv-bg)]">
+                        FN Futures EOD
+                      </span>
+                    )}
                   </div>
                   <div className="text-[11px] text-[var(--gruv-muted)] mt-1">
-                    Initial: ${acc.initialBalance.toLocaleString()} • Target: ${acc.profitTarget.toLocaleString()} • Max DD: ${acc.maxDrawdown.toLocaleString()}
+                    Initial: ${acc.initialBalance.toLocaleString()} • Target: ${acc.profitTarget.toLocaleString()} • Max DD: ${acc.maxDrawdown.toLocaleString()} • EOD Daily DD: ${acc.dailyLossLimit?.toLocaleString() || '1,000'}
                   </div>
                 </div>
 
@@ -136,7 +162,7 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
                   <button
                     onClick={() => handleEditClick(acc)}
                     title="Edit account specs"
-                    className="p-1.5 rounded-lg text-[var(--gruv-muted)] hover:text-[var(--gruv-yellow)] hover:bg-[var(--gruv-bg)]"
+                    className="p-1.5 rounded-lg text-[var(--gruv-muted)] hover:text-[var(--gruv-yellow)] hover:bg-[var(--gruv-bg-soft)]"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
@@ -149,7 +175,7 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
                         }
                       }}
                       title="Delete account"
-                      className="p-1.5 rounded-lg text-[var(--gruv-muted)] hover:text-[var(--gruv-red)] hover:bg-[var(--gruv-bg)]"
+                      className="p-1.5 rounded-lg text-[var(--gruv-muted)] hover:text-[var(--gruv-red)] hover:bg-[var(--gruv-bg-soft)]"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -162,9 +188,43 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
 
         {/* Create / Edit Form */}
         <form onSubmit={handleSubmit} className="p-4 rounded-xl bg-[var(--gruv-bg)]/60 border border-[var(--gruv-border)] space-y-4">
-          <h3 className="font-bold text-xs text-[var(--gruv-yellow)] uppercase tracking-wider">
-            {editingId ? 'Edit Account Specs' : '+ Add New Prop Eval / Account'}
-          </h3>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-bold text-xs text-[var(--gruv-yellow)] uppercase tracking-wider">
+              {editingId ? 'Edit Account Specs' : '+ Add New Prop Eval / Account'}
+            </h3>
+            {/* Quick Presets */}
+            <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+              <span className="text-[var(--gruv-muted)] font-bold">Presets:</span>
+              <button
+                type="button"
+                onClick={() => applyPreset('FundedNext 25k Eval', 25000, 1500, 1500, 500)}
+                className="px-2 py-0.5 rounded bg-[var(--gruv-bg-soft)] border border-[var(--gruv-border)] hover:border-[var(--gruv-yellow)] text-[var(--gruv-fg)] font-mono"
+              >
+                FN 25k
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('FundedNext 50k Eval', 50000, 3000, 2000, 1000)}
+                className="px-2 py-0.5 rounded bg-[var(--gruv-bg-soft)] border border-[var(--gruv-border)] hover:border-[var(--gruv-yellow)] text-[var(--gruv-fg)] font-mono font-bold text-[var(--gruv-yellow)]"
+              >
+                FN 50k
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('FundedNext 100k Eval', 100000, 6000, 3000, 2000)}
+                className="px-2 py-0.5 rounded bg-[var(--gruv-bg-soft)] border border-[var(--gruv-border)] hover:border-[var(--gruv-yellow)] text-[var(--gruv-fg)] font-mono"
+              >
+                FN 100k
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('FundedNext 150k Eval', 150000, 9000, 4500, 3000)}
+                className="px-2 py-0.5 rounded bg-[var(--gruv-bg-soft)] border border-[var(--gruv-border)] hover:border-[var(--gruv-yellow)] text-[var(--gruv-fg)] font-mono"
+              >
+                FN 150k
+              </button>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

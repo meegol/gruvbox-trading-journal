@@ -16,6 +16,11 @@ export interface Account {
   profitTarget: number;
   maxDrawdown: number;
   dailyLossLimit?: number; // e.g. 500 for $500 max daily loss
+  isFundedNextFutures?: boolean;
+  eodStartingBalance?: number;
+  lastEodResetDate?: string;
+  apiAccountKey?: string;
+  autoSyncEnabled?: boolean;
   minTradingDays?: number;
   payoutThreshold?: number;
   minPayoutBuffer?: number;

@@ -150,7 +150,19 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
   );
   const todayPnl = todayTrades.reduce((acc, t) => acc + t.pnl, 0);
   const dailyLossLimit = account.dailyLossLimit || 500;
-  const isDailyLimitBreached = todayPnl <= -dailyLossLimit;
+
+  // FundedNext Futures EOD Balance-Based Drawdown Logic
+  const isFundedNextFutures = !!account.isFundedNextFutures;
+  const eodBaseline = isFundedNextFutures ? (account.eodStartingBalance ?? account.initialBalance) : account.initialBalance;
+  const eodLossFloor = eodBaseline - dailyLossLimit;
+  const eodCushionRemaining = currentBalance - eodLossFloor;
+  const eodDailyDrawdownPercent = isFundedNextFutures 
+    ? Math.min(100, Math.max(0, ((eodBaseline - currentBalance) / dailyLossLimit) * 100))
+    : 0;
+
+  const isDailyLimitBreached = isFundedNextFutures
+    ? currentBalance <= eodLossFloor
+    : todayPnl <= -dailyLossLimit;
 
   let peakBalance = account.initialBalance;
   let running = account.initialBalance;
@@ -169,6 +181,14 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
 
   const drawdownBufferRemaining = Math.max(0, account.maxDrawdown - maxDrawdownUsed);
   const drawdownUsedPercent = (maxDrawdownUsed / account.maxDrawdown) * 100;
+
+  const fundedNextDetails = {
+    isFundedNextFutures,
+    eodBaseline,
+    eodLossFloor,
+    eodCushionRemaining,
+    eodDailyDrawdownPercent,
+  };
 
   if (account.type === 'eval') {
     const target = account.profitTarget || 3000;
@@ -192,14 +212,15 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
       isDailyLimitBreached,
       isPassed,
       isFailed,
-      typeLabel: 'Evaluation',
+      typeLabel: isFundedNextFutures ? 'FundedNext Futures Eval' : 'Evaluation',
       statusText: isPassed
         ? 'PASSED - Target Achieved'
         : isFailed
         ? 'FAILED - Max Drawdown Breached'
         : isDailyLimitBreached
-        ? 'DAILY LOSS LIMIT BREACHED — WALK AWAY FOR THE DAY'
+        ? 'DAILY EOD LOSS LIMIT BREACHED — WALK AWAY'
         : `${progressPct.toFixed(1)}% to Passing ($${remainingToPass.toLocaleString('en-US', { minimumFractionDigits: 2 })} remaining)`,
+      ...fundedNextDetails,
     };
   } else if (account.type === 'funded') {
     const threshold = account.payoutThreshold || 1500;
@@ -223,14 +244,15 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
       isDailyLimitBreached,
       isEligible,
       isFailed,
-      typeLabel: 'Funded Account',
+      typeLabel: isFundedNextFutures ? 'FundedNext Futures Account' : 'Funded Account',
       statusText: isEligible
         ? 'PAYOUT ELIGIBLE'
         : isFailed
         ? 'FAILED - Max Drawdown Breached'
         : isDailyLimitBreached
-        ? 'DAILY LOSS LIMIT BREACHED — WALK AWAY FOR THE DAY'
+        ? 'DAILY EOD LOSS LIMIT BREACHED — WALK AWAY'
         : `$${netPnl.toLocaleString('en-US', { minimumFractionDigits: 2 })} / $${threshold.toLocaleString('en-US')} to Payout (${progressPct.toFixed(1)}%)`,
+      ...fundedNextDetails,
     };
   } else {
     const growthPercent = (netPnl / account.initialBalance) * 100;
@@ -249,6 +271,7 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
       statusText: isDailyLimitBreached
         ? 'DAILY LOSS LIMIT BREACHED — WALK AWAY FOR THE DAY'
         : `Total Return: ${growthPercent >= 0 ? '+' : ''}${growthPercent.toFixed(2)}%`,
+      ...fundedNextDetails,
     };
   }
 }
