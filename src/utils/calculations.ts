@@ -210,21 +210,24 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
     const isPassed = netPnl >= target;
     const isFailed = maxDrawdownUsed >= account.maxDrawdown;
 
+    const effectiveMaxDd = isFundedNextFutures ? maxLossLimit : account.maxDrawdown;
+    const effectiveDdUsed = isFundedNextFutures ? intradayLoss : maxDrawdownUsed;
+
     return {
       netPnl,
       currentBalance,
       target,
       progressPct,
       remainingToPass,
-      maxDrawdownLimit: account.maxDrawdown,
-      maxDrawdownUsed,
+      maxDrawdownLimit: effectiveMaxDd,
+      maxDrawdownUsed: effectiveDdUsed,
       drawdownUsedPercent,
-      drawdownBufferRemaining,
+      drawdownBufferRemaining: eodCushionRemaining,
       todayPnl,
-      dailyLossLimit,
+      dailyLossLimit: maxLossLimit,
       isDailyLimitBreached,
       isPassed,
-      isFailed,
+      isFailed: eodCushionRemaining <= 0,
       typeLabel: isFundedNextFutures ? 'FundedNext Futures Eval' : 'Evaluation',
       statusText: isPassed
         ? 'PASSED - Target Achieved'
