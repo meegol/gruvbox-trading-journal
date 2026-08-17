@@ -51,7 +51,29 @@ export function App() {
   const [isFundedNextSyncOpen, setIsFundedNextSyncOpen] = useState(false);
 
   const reloadData = async () => {
-    const accList = await getAllAccounts();
+    let accList = await getAllAccounts();
+    
+    // Auto-migrate legacy default accounts to live FundedNext Flex $50K specs
+    let migrated = false;
+    for (const acc of accList) {
+      if (acc.name === '50k FundedNext Eval' || acc.name === 'Apex 50k Eval #1' || acc.profitTarget === 2743.5 || !acc.isFundedNextFutures) {
+        acc.name = 'Futures Flex $50K (FN***57069)';
+        acc.initialBalance = 50000;
+        acc.currentBalance = 49911.95;
+        acc.profitTarget = 2500;
+        acc.maxDrawdown = 1384.55;
+        acc.dailyLossLimit = 1384.55;
+        acc.isFundedNextFutures = true;
+        acc.eodStartingBalance = 50000;
+        acc.peakEodBalance = 50000;
+        await saveAccount(acc);
+        migrated = true;
+      }
+    }
+    if (migrated) {
+      accList = await getAllAccounts();
+    }
+
     setAccounts(accList);
     
     const targetAccId = accList.some((a) => a.id === activeAccountId)
