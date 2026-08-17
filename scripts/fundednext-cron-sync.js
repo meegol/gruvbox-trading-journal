@@ -5,8 +5,8 @@
 
 const https = require('https');
 
-// Replace these values directly if you want to hardcode credentials for your personal project!
-const FUNDEDNEXT_API_TOKEN = process.env.FUNDEDNEXT_API_TOKEN || 'YOUR_FUNDEDNEXT_BEARER_TOKEN_HERE';
+// Hardcoded FundedNext Session Token from app.fundednext.com
+const FUNDEDNEXT_API_TOKEN = process.env.FUNDEDNEXT_API_TOKEN || '63424128|544QWWEb6pNnfcYhEycu6WnbloxSeVOTl6BhoPD4f986e4ca';
 const FUNDEDNEXT_ACCOUNT_ID = process.env.FUNDEDNEXT_ACCOUNT_ID || 'FN-FUTURES-50K-MIGO';
 const MIGO_SYNC_KEY = process.env.MIGO_SYNC_KEY || 'migol_futures_vault';
 const MIGO_BIN_ID = process.env.MIGO_BIN_ID || '';

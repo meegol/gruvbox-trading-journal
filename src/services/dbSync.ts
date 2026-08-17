@@ -15,17 +15,19 @@ export const SEED_DATA: { accounts: Account[]; trades: Trade[] } = {
   accounts: [
     {
       id: "acc-1786666607627",
-      name: "50k FundedNext Eval",
+      name: "Futures Flex $50K (FN***57069)",
       type: "eval",
       initialBalance: 50000,
-      currentBalance: 50027.9,
-      profitTarget: 2743.5,
-      maxDrawdown: 1500.5,
-      dailyLossLimit: 300,
+      currentBalance: 49911.95,
+      profitTarget: 2500,
+      maxDrawdown: 1472.60,
+      dailyLossLimit: 1384.55,
+      isFundedNextFutures: true,
+      eodStartingBalance: 50000,
       payoutThreshold: 1500,
       status: "active",
       createdAt: "2026-08-14T00:16:47.627Z",
-      notes: ""
+      notes: "FundedNext Futures Flex - Tradovate Platform"
     }
   ],
   trades: [

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Account, Trade, TradeDirection, EmotionRating, FuturesSymbol, TradingSession } from '../types/journal';
 import { getFuturesPointValue } from '../utils/futures';
-import { X, Upload, Star, DollarSign, BarChart2, CheckSquare, Square } from 'lucide-react';
+import { X, Upload, Star, DollarSign, BarChart2, CheckSquare, Square, RefreshCw } from 'lucide-react';
 
 interface TradeEntryModalProps {
   isOpen: boolean;
@@ -29,12 +29,23 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
     activeAccountId === 'all' && accounts.length > 0 ? accounts[0].id : activeAccountId
   );
 
-  const activeAccount = accounts.find((a) => a.id === accountId);
+  const activeAccount = accounts.find((a) => a.id === accountId) || accounts[0];
   const currentAccBal = activeAccount ? activeAccount.currentBalance : 50000;
 
-  // Balance Delta Mode
+  // Balance Delta Mode - Auto-populated from current balance
   const [balanceBefore, setBalanceBefore] = useState<string>(currentAccBal.toString());
   const [balanceAfter, setBalanceAfter] = useState<string>(currentAccBal.toString());
+
+  // Auto-sync balanceBefore and balanceAfter whenever modal opens or account changes
+  useEffect(() => {
+    const targetAccId = accountId || (activeAccountId === 'all' && accounts.length > 0 ? accounts[0].id : activeAccountId);
+    setAccountId(targetAccId);
+    const acc = accounts.find((a) => a.id === targetAccId) || accounts[0];
+    if (acc) {
+      setBalanceBefore(acc.currentBalance.toString());
+      setBalanceAfter(acc.currentBalance.toString());
+    }
+  }, [isOpen, activeAccountId, accountId, accounts]);
 
   // Futures Execution Specs
   const [symbol, setSymbol] = useState<string>('NQ');
@@ -255,7 +266,22 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
           {entryMode === 'balance' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-[var(--gruv-bg)]/60 border border-[var(--gruv-border)]">
               <div>
-                <label className="text-[var(--gruv-muted)] block mb-1">Account Balance BEFORE Trade ($)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[var(--gruv-muted)] block font-bold">Balance BEFORE Trade ($)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (activeAccount) {
+                        setBalanceBefore(activeAccount.currentBalance.toString());
+                      }
+                    }}
+                    title="Reset to current account balance"
+                    className="text-[10px] text-[var(--gruv-yellow)] font-bold hover:underline flex items-center space-x-1"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Auto-filled (${currentAccBal.toLocaleString('en-US', { minimumFractionDigits: 2 })})</span>
+                  </button>
+                </div>
                 <input
                   type="number"
                   step="any"
@@ -267,7 +293,16 @@ export const TradeEntryModal: React.FC<TradeEntryModalProps> = ({
               </div>
 
               <div>
-                <label className="text-[var(--gruv-muted)] block mb-1">Account Balance AFTER Trade ($)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[var(--gruv-muted)] block font-bold">Balance AFTER Trade ($)</label>
+                  <button
+                    type="button"
+                    onClick={() => setBalanceAfter(balanceBefore)}
+                    className="text-[10px] text-[var(--gruv-muted)] hover:text-[var(--gruv-yellow)] font-bold underline"
+                  >
+                    Set Equal to Before
+                  </button>
+                </div>
                 <input
                   type="number"
                   step="any"

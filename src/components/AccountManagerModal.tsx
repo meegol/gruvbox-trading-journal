@@ -197,6 +197,13 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
               <span className="text-[var(--gruv-muted)] font-bold">Presets:</span>
               <button
                 type="button"
+                onClick={() => applyPreset('Futures Flex $50K', 50000, 2500, 1472.6, 1384.55)}
+                className="px-2 py-0.5 rounded bg-[var(--gruv-yellow)]/20 text-[var(--gruv-yellow)] font-bold border border-[var(--gruv-yellow)]/50 font-mono"
+              >
+                Flex $50K (Live)
+              </button>
+              <button
+                type="button"
                 onClick={() => applyPreset('FundedNext 25k Eval', 25000, 1500, 1500, 500)}
                 className="px-2 py-0.5 rounded bg-[var(--gruv-bg-soft)] border border-[var(--gruv-border)] hover:border-[var(--gruv-yellow)] text-[var(--gruv-fg)] font-mono"
               >
@@ -205,7 +212,7 @@ export const AccountManagerModal: React.FC<AccountManagerModalProps> = ({
               <button
                 type="button"
                 onClick={() => applyPreset('FundedNext 50k Eval', 50000, 3000, 2000, 1000)}
-                className="px-2 py-0.5 rounded bg-[var(--gruv-bg-soft)] border border-[var(--gruv-border)] hover:border-[var(--gruv-yellow)] text-[var(--gruv-fg)] font-mono font-bold text-[var(--gruv-yellow)]"
+                className="px-2 py-0.5 rounded bg-[var(--gruv-bg-soft)] border border-[var(--gruv-border)] hover:border-[var(--gruv-yellow)] text-[var(--gruv-fg)] font-mono font-bold"
               >
                 FN 50k
               </button>
