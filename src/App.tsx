@@ -133,6 +133,15 @@ export function App() {
     pushToRealServerCloud();
   };
 
+  const handleResetSeedData = async () => {
+    if (confirm('Reset journal data to the seeded FundedNext $50k account & trades?')) {
+      const { forceResetToSeededData } = await import('./services/dbSync');
+      await forceResetToSeededData();
+      await reloadData();
+      alert('Journal successfully reset to seeded FundedNext Flex $50K account and trades!');
+    }
+  };
+
   const activeAccount = accounts.find((a) => a.id === activeAccountId) || null;
   const initialBalance = activeAccount ? activeAccount.initialBalance : 50000;
   const stats: TradingStats = computeTradingStats(trades, initialBalance);
@@ -155,6 +164,7 @@ export function App() {
         onOpenCalculatorModal={() => setIsCalculatorOpen(true)}
         onOpenBackupModal={() => setIsBackupOpen(true)}
         onOpenFundedNextSyncModal={() => setIsFundedNextSyncOpen(true)}
+        onResetSeedData={handleResetSeedData}
         isDarkMode={isDarkMode}
         onToggleTheme={handleToggleTheme}
         onLockApp={handleLockVault}

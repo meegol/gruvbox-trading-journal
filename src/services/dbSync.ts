@@ -20,8 +20,8 @@ export const SEED_DATA: { accounts: Account[]; trades: Trade[] } = {
       initialBalance: 50000,
       currentBalance: 49911.95,
       profitTarget: 2500,
-      maxDrawdown: 1500,
-      dailyLossLimit: 1500,
+      maxDrawdown: 1472.60,
+      dailyLossLimit: 1384.55,
       isFundedNextFutures: true,
       eodStartingBalance: 50000,
       peakEodBalance: 50000,
@@ -232,5 +232,17 @@ export async function pullFromRealServerCloud(): Promise<{ success: boolean; cou
   } catch (err: any) {
     console.warn('Cloud Storage Pull Warning:', err);
     return { success: false, count: 0 };
+  }
+}
+
+export async function forceResetToSeededData(): Promise<void> {
+  const { clearAllDatabase } = await import('./db');
+  await clearAllDatabase();
+  localStorage.removeItem(STORAGE_KEY);
+  for (const acc of SEED_DATA.accounts) {
+    await saveAccount(acc);
+  }
+  for (const trd of SEED_DATA.trades) {
+    await saveTrade(trd);
   }
 }

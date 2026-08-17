@@ -21,6 +21,7 @@ interface NavbarProps {
   onOpenCalculatorModal: () => void;
   onOpenBackupModal: () => void;
   onOpenFundedNextSyncModal: () => void;
+  onResetSeedData?: () => void;
   isDarkMode: boolean;
   onToggleTheme: () => void;
   onLockApp: () => void;
@@ -35,6 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenCalculatorModal,
   onOpenBackupModal,
   onOpenFundedNextSyncModal,
+  onResetSeedData,
   isDarkMode,
   onToggleTheme,
   onLockApp,
@@ -114,6 +116,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Database className="w-4 h-4" />
           </button>
+
+          {onResetSeedData && (
+            <button
+              onClick={onResetSeedData}
+              title="Reset Journal to Seeded FundedNext Data"
+              className="glass-button p-2 rounded-xl text-[var(--gruv-yellow)] hover:bg-[var(--gruv-yellow)]/20 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          )}
 
           <button
             onClick={onLockApp}
