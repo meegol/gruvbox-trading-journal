@@ -200,40 +200,40 @@ export const AccountProgressCard: React.FC<AccountProgressCardProps> = ({
 
       </div>
 
-      {/* FundedNext Futures EOD Balance-Based Drawdown Banner */}
+      {/* FundedNext Futures Peak EOD Trailing Drawdown Banner */}
       {progress.isFundedNextFutures && (
         <div className="mt-4 p-4 rounded-xl bg-[var(--gruv-bg)]/90 border border-[var(--gruv-yellow)]/40 font-mono">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-[var(--gruv-border)]">
             <div className="flex items-center space-x-2">
               <span className="w-2 h-2 rounded-full bg-[var(--gruv-yellow)] animate-ping" />
               <span className="font-bold text-xs text-[var(--gruv-yellow)] uppercase tracking-wider">
-                FundedNext Futures EOD Drawdown Engine
+                FundedNext Peak EOD Trailing Drawdown (-$1,500)
               </span>
             </div>
             <div className="text-xs text-[var(--gruv-muted)]">
-              Session Baseline (5PM EST): <strong className="text-[var(--gruv-fg)]">${progress.eodBaseline?.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+              Highest Peak EOD Balance: <strong className="text-[var(--gruv-fg)]">${(progress.peakEodBalance || progress.eodBaseline || account.initialBalance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs mb-3">
             <div className="bg-[var(--gruv-bg-soft)] p-2.5 rounded-lg border border-[var(--gruv-border)]">
-              <div className="text-[var(--gruv-muted)] text-[10px] uppercase">EOD LOSS FLOOR</div>
+              <div className="text-[var(--gruv-muted)] text-[10px] uppercase">EOD TRAILING FLOOR (-$1,500)</div>
               <div className="text-sm font-bold text-[var(--gruv-red)]">
                 ${progress.eodLossFloor?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
             </div>
 
             <div className="bg-[var(--gruv-bg-soft)] p-2.5 rounded-lg border border-[var(--gruv-border)]">
-              <div className="text-[var(--gruv-muted)] text-[10px] uppercase">LIVE EOD LOSS CUSHION</div>
+              <div className="text-[var(--gruv-muted)] text-[10px] uppercase font-bold">LIVE EOD LOSS CUSHION</div>
               <div className={`text-sm font-bold ${(progress.eodCushionRemaining || 0) < 300 ? 'text-[var(--gruv-red)]' : 'text-[var(--gruv-green)]'}`}>
                 ${progress.eodCushionRemaining?.toLocaleString('en-US', { minimumFractionDigits: 2 })} Safe
               </div>
             </div>
 
             <div className="bg-[var(--gruv-bg-soft)] p-2.5 rounded-lg border border-[var(--gruv-border)]">
-              <div className="text-[var(--gruv-muted)] text-[10px] uppercase">DAILY MAX LOSS LIMIT</div>
+              <div className="text-[var(--gruv-muted)] text-[10px] uppercase">TRAILING DD DISTANCE</div>
               <div className="text-sm font-bold text-[var(--gruv-fg)]">
-                ${progress.dailyLossLimit?.toLocaleString()} EOD
+                ${(progress.trailingDdAmount || 1500).toLocaleString()} Max DD
               </div>
             </div>
           </div>

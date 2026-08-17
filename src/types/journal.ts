@@ -15,9 +15,10 @@ export interface Account {
   currentBalance: number;
   profitTarget: number;
   maxDrawdown: number;
-  dailyLossLimit?: number; // e.g. 500 for $500 max daily loss
+  dailyLossLimit?: number; // e.g. 1500 for $1500 max loss
   isFundedNextFutures?: boolean;
   eodStartingBalance?: number;
+  peakEodBalance?: number;
   lastEodResetDate?: string;
   apiAccountKey?: string;
   autoSyncEnabled?: boolean;
@@ -56,6 +57,9 @@ export interface Trade {
   preTradeNotes?: string;
   postTradeNotes?: string;
   screenshot?: string;
+  pyramidGroupId?: string;
+  isPyramidLeg?: boolean;
+  legIndex?: number;
 }
 
 export interface TradingStats {

@@ -151,18 +151,9 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
   const todayPnl = todayTrades.reduce((acc, t) => acc + t.pnl, 0);
   const dailyLossLimit = account.dailyLossLimit || 500;
 
-  // FundedNext Futures EOD Balance-Based Drawdown Logic
+  // FundedNext Futures EOD Peak Trailing Drawdown Logic (Highest Balance - $1500)
   const isFundedNextFutures = !!account.isFundedNextFutures;
-  const eodBaseline = isFundedNextFutures ? (account.eodStartingBalance ?? account.initialBalance) : account.initialBalance;
-  const eodLossFloor = eodBaseline - dailyLossLimit;
-  const eodCushionRemaining = currentBalance - eodLossFloor;
-  const eodDailyDrawdownPercent = isFundedNextFutures 
-    ? Math.min(100, Math.max(0, ((eodBaseline - currentBalance) / dailyLossLimit) * 100))
-    : 0;
-
-  const isDailyLimitBreached = isFundedNextFutures
-    ? currentBalance <= eodLossFloor
-    : todayPnl <= -dailyLossLimit;
+  const trailingDdAmount = account.dailyLossLimit || account.maxDrawdown || 1500;
 
   let peakBalance = account.initialBalance;
   let running = account.initialBalance;
@@ -179,15 +170,39 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
     if (dd > maxDrawdownUsed) maxDrawdownUsed = dd;
   }
 
-  const drawdownBufferRemaining = Math.max(0, account.maxDrawdown - maxDrawdownUsed);
-  const drawdownUsedPercent = (maxDrawdownUsed / account.maxDrawdown) * 100;
+  const peakEodBalance = Math.max(
+    account.initialBalance,
+    account.eodStartingBalance || account.initialBalance,
+    account.peakEodBalance || account.initialBalance,
+    peakBalance
+  );
+
+  const eodBaseline = peakEodBalance;
+  const eodLossFloor = peakEodBalance - trailingDdAmount;
+  const eodCushionRemaining = Math.max(0, currentBalance - eodLossFloor);
+  const eodDailyDrawdownPercent = isFundedNextFutures 
+    ? Math.min(100, Math.max(0, ((peakEodBalance - currentBalance) / trailingDdAmount) * 100))
+    : 0;
+
+  const isDailyLimitBreached = isFundedNextFutures
+    ? currentBalance <= eodLossFloor
+    : todayPnl <= -dailyLossLimit;
+
+  const drawdownBufferRemaining = isFundedNextFutures 
+    ? eodCushionRemaining 
+    : Math.max(0, account.maxDrawdown - maxDrawdownUsed);
+  const drawdownUsedPercent = isFundedNextFutures 
+    ? eodDailyDrawdownPercent 
+    : (maxDrawdownUsed / account.maxDrawdown) * 100;
 
   const fundedNextDetails = {
     isFundedNextFutures,
     eodBaseline,
+    peakEodBalance,
     eodLossFloor,
     eodCushionRemaining,
     eodDailyDrawdownPercent,
+    trailingDdAmount,
   };
 
   if (account.type === 'eval') {
