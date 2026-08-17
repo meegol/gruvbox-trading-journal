@@ -26,10 +26,12 @@ import { CalculatorModal } from './components/CalculatorModal';
 import { BackupModal } from './components/BackupModal';
 import { LockScreenModal } from './components/LockScreenModal';
 import { FundedNextSyncModal } from './components/FundedNextSyncModal';
+import { MonteCarloView } from './components/MonteCarloView';
 
-import { Calendar, TrendingUp, Table, BarChart2 } from 'lucide-react';
+import { Calendar, TrendingUp, Table, BarChart2, Activity } from 'lucide-react';
 
 export function App() {
+  const [activeTab, setActiveTab] = useState<'calendar' | 'equity' | 'log' | 'analytics' | 'monte-carlo'>('calendar');
   const [isLocked, setIsLocked] = useState<boolean>(() => {
     return sessionStorage.getItem('migo_vault_unlocked') !== 'true';
   });
@@ -47,9 +49,6 @@ export function App() {
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
   const [isFundedNextSyncOpen, setIsFundedNextSyncOpen] = useState(false);
-
-  // Main Dashboard Tab
-  const [activeTab, setActiveTab] = useState<'calendar' | 'equity' | 'log' | 'analytics'>('calendar');
 
   const reloadData = async () => {
     const accList = await getAllAccounts();
@@ -228,6 +227,18 @@ export function App() {
             <BarChart2 className="w-4 h-4" />
             <span>Mindset Analytics</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('monte-carlo')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all ${
+              activeTab === 'monte-carlo'
+                ? 'bg-[var(--gruv-yellow)] text-[#1d2021] shadow-md'
+                : 'text-[var(--gruv-muted)] hover:text-[var(--gruv-fg)] hover:bg-[var(--gruv-surface)]'
+            }`}
+          >
+            <Activity className="w-4 h-4 text-[var(--gruv-yellow)]" />
+            <span>Monte Carlo Matrix</span>
+          </button>
         </div>
 
         {activeTab === 'calendar' && (
@@ -251,6 +262,10 @@ export function App() {
 
         {activeTab === 'analytics' && (
           <AnalyticsView trades={trades} />
+        )}
+
+        {activeTab === 'monte-carlo' && (
+          <MonteCarloView account={activeAccount} trades={trades} />
         )}
 
       </main>
