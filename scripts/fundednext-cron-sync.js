@@ -5,8 +5,8 @@
 
 const https = require('https');
 
-// Hardcoded FundedNext Session Token from app.fundednext.com
-const FUNDEDNEXT_API_TOKEN = process.env.FUNDEDNEXT_API_TOKEN || '63424128|544QWWEb6pNnfcYhEycu6WnbloxSeVOTl6BhoPD4f986e4ca';
+// Hardcoded FundedNext MCP Token
+const FUNDEDNEXT_API_TOKEN = process.env.FUNDEDNEXT_API_TOKEN || '63930239|XEiIPCvFQ0WXY2dJpPVBk250PQfdmxw22Z6jJ5qr981daacd';
 const FUNDEDNEXT_ACCOUNT_ID = process.env.FUNDEDNEXT_ACCOUNT_ID || 'FN-FUTURES-50K-MIGO';
 const MIGO_SYNC_KEY = process.env.MIGO_SYNC_KEY || 'migol_futures_vault';
 const MIGO_BIN_ID = process.env.MIGO_BIN_ID || '';
