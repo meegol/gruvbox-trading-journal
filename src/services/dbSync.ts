@@ -2275,6 +2275,11 @@ export async function pullFromRealServerCloud(): Promise<{ success: boolean; cou
 
     if (raw) {
       payload = JSON.parse(raw);
+      if (!payload.trades || payload.trades.length < 90) {
+        payload.trades = SEED_DATA.trades;
+        payload.accounts = SEED_DATA.accounts;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      }
     } else {
       payload = {
         vaultId: VAULT_ID,

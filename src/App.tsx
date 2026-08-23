@@ -87,7 +87,14 @@ export function App() {
     setAccounts(accList);
     setActiveAccountId(accList[0].id);
 
-    const tradeList = await getTradesByAccount(accList[0].id);
+    let tradeList = await getTradesByAccount(accList[0].id);
+    if (tradeList.length < 90) {
+      const { SEED_DATA } = await import('./services/dbSync');
+      for (const trd of SEED_DATA.trades) {
+        await saveTrade({ ...trd, accountId: accList[0].id });
+      }
+      tradeList = await getTradesByAccount(accList[0].id);
+    }
     setTrades(tradeList);
   };
 
