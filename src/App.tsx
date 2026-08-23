@@ -53,38 +53,41 @@ export function App() {
   const reloadData = async () => {
     let accList = await getAllAccounts();
     
-    // Auto-migrate legacy default accounts to live FundedNext Flex $50K specs
-    let migrated = false;
+    // Purge any legacy blown account objects and maintain only active Futures Flex $50K
+    const { deleteAccount: removeAccountFromDb } = await import('./services/db');
     for (const acc of accList) {
-      if (acc.name === '50k FundedNext Eval' || acc.name === 'Apex 50k Eval #1' || acc.profitTarget === 2743.5 || !acc.isFundedNextFutures) {
-        acc.name = 'Futures Flex $50K (FN***57069)';
-        acc.initialBalance = 50000;
-        acc.currentBalance = 49911.95;
-        acc.profitTarget = 2500;
-        acc.maxDrawdown = 1384.55;
-        acc.dailyLossLimit = 1384.55;
-        acc.isFundedNextFutures = true;
-        acc.eodStartingBalance = 50000;
-        acc.peakEodBalance = 50000;
-        await saveAccount(acc);
-        migrated = true;
+      if (acc.id !== 'acc-1786666607627' || acc.name.includes('Apex') || acc.name === '50k FundedNext Eval') {
+        await removeAccountFromDb(acc.id);
       }
     }
-    if (migrated) {
-      accList = await getAllAccounts();
+    
+    accList = await getAllAccounts();
+    if (accList.length === 0) {
+      const activeAccount: Account = {
+        id: 'acc-1786666607627',
+        name: 'Futures Flex $50K (FN***57069)',
+        type: 'eval',
+        initialBalance: 50000,
+        currentBalance: 48718.35,
+        profitTarget: 2500,
+        maxDrawdown: 1384.55,
+        dailyLossLimit: 1384.55,
+        isFundedNextFutures: true,
+        eodStartingBalance: 50000,
+        peakEodBalance: 50000,
+        payoutThreshold: 1500,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        notes: 'FundedNext Futures Flex - Tradovate Platform'
+      };
+      await saveAccount(activeAccount);
+      accList = [activeAccount];
     }
 
     setAccounts(accList);
-    
-    const targetAccId = accList.some((a) => a.id === activeAccountId)
-      ? activeAccountId
-      : accList.length > 0
-      ? accList[0].id
-      : 'all';
-    
-    setActiveAccountId(targetAccId);
+    setActiveAccountId(accList[0].id);
 
-    const tradeList = await getTradesByAccount(targetAccId);
+    const tradeList = await getTradesByAccount(accList[0].id);
     setTrades(tradeList);
   };
 
