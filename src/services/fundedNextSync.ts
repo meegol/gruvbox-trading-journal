@@ -92,6 +92,28 @@ export async function syncFundedNextFuturesAccount(
         if (initData && !initData.error) {
           mcpMessage = 'Connected to official FundedNext MCP Server (https://mcp.fundednext.com)! ';
 
+          // Query live account overview dynamically
+          const overviewData = await callFundedNextMcpServer(key, 'tools/call', {
+            name: 'get_account_overview',
+            arguments: { account_id: 1 },
+          });
+
+          if (overviewData?.result?.content?.[0]?.text) {
+            try {
+              const parsedOverview = JSON.parse(overviewData.result.content[0].text);
+              const details = parsedOverview.account_details || {};
+              if (details.type) {
+                account.name = `${details.type} (${details.login || 'FN'})`;
+              }
+              if (details.breached === 1) {
+                account.status = 'failed';
+                account.notes = `Breached on FundedNext: ${details.breached_by || 'Loss Limit'}`;
+              }
+            } catch (err: any) {
+              console.warn('Overview parse warning:', err.message);
+            }
+          }
+
           // Fetch trading calendar month for current month
           const currentMonthStr = new Date().toISOString().slice(0, 7);
           const calData = await callFundedNextMcpServer(key, 'tools/call', {
