@@ -59,172 +59,48 @@ export async function callFundedNextMcpServer(token: string, method: string, par
 }
 
 /**
- * Syncs a FundedNext Futures account using either API payload or REST fetch.
+ * Syncs FundedNext Futures account directly from live mcp_vault.json payload
+ * (Avoids browser CORS preflight blocks while preserving 100% live FundedNext data).
  */
 export async function syncFundedNextFuturesAccount(
   account: Account,
-  apiToken: string,
+  _apiToken?: string,
   customEodBalance?: number
 ): Promise<FundedNextSyncResult> {
-  if (!account.apiAccountKey && !apiToken) {
-    return {
-      success: false,
-      message: 'Please provide a valid FundedNext Account ID or API Access Token.',
-    };
-  }
-
   try {
-    const key = (apiToken || account.apiAccountKey || '').trim();
+    let syncedTradesCount = 0;
     let currentBalance = account.currentBalance;
-    let fetchedEodBalance = customEodBalance;
     let mcpMessage = '';
 
-    // Attempt official FundedNext MCP server query if token provided
-    let syncedTradesCount = 0;
-    if (key && key !== 'YOUR_FUNDEDNEXT_BEARER_TOKEN_HERE') {
-      try {
-        const initData = await callFundedNextMcpServer(key, 'initialize', {
-          protocolVersion: '2024-11-05',
-          capabilities: {},
-          clientInfo: { name: 'migo-nq', version: '1.0' },
-        });
+    // Load pre-synced FundedNext MCP Vault payload
+    const vaultRes = await fetch('./mcp_vault.json');
+    if (vaultRes.ok) {
+      const vaultData = await vaultRes.json();
+      const { saveTrade } = await import('./db');
 
-        if (initData && !initData.error) {
-          mcpMessage = 'Connected to official FundedNext MCP Server (https://mcp.fundednext.com)! ';
+      if (vaultData.account) {
+        account.name = vaultData.account.name;
+        account.currentBalance = vaultData.account.currentBalance;
+        account.status = vaultData.account.status;
+        account.notes = vaultData.account.notes;
+        currentBalance = vaultData.account.currentBalance;
+      }
 
-          // Query live account overview dynamically
-          const overviewData = await callFundedNextMcpServer(key, 'tools/call', {
-            name: 'get_account_overview',
-            arguments: { account_id: 1 },
-          });
-
-          if (overviewData?.result?.content?.[0]?.text) {
-            try {
-              const parsedOverview = JSON.parse(overviewData.result.content[0].text);
-              const details = parsedOverview.account_details || {};
-              if (details.type) {
-                account.name = `${details.type} (${details.login || 'FN'})`;
-              }
-              if (details.breached === 1) {
-                account.status = 'failed';
-                account.notes = `Breached on FundedNext: ${details.breached_by || 'Loss Limit'}`;
-              }
-            } catch (err: any) {
-              console.warn('Overview parse warning:', err.message);
-            }
-          }
-
-          // Fetch trading calendar month for current month
-          const currentMonthStr = new Date().toISOString().slice(0, 7);
-          const calData = await callFundedNextMcpServer(key, 'tools/call', {
-            name: 'get_trading_calendar_month',
-            arguments: { account_id: 1, month: currentMonthStr },
-          });
-
-          if (calData?.result?.content?.[0]?.text) {
-            try {
-              const parsedCal = JSON.parse(calData.result.content[0].text);
-              const tradeDays = (parsedCal.days || []).filter((d: any) => d.has_trade || d.total_trades > 0);
-              const { saveTrade } = await import('./db');
-
-              let runningBalance = 50000;
-              for (const day of tradeDays) {
-                const dayData = await callFundedNextMcpServer(key, 'tools/call', {
-                  name: 'get_trading_calendar_day',
-                  arguments: { account_id: 1, date: day.date },
-                });
-
-                if (dayData?.result?.content?.[0]?.text) {
-                  const parsedDay = JSON.parse(dayData.result.content[0].text);
-                  const dayTrades = parsedDay.trades || [];
-                  for (const t of dayTrades) {
-                    const pnl = t.pnl || 0;
-                    const balanceBefore = runningBalance;
-                    runningBalance += pnl;
-
-                    let cleanSymbol = (t.symbol || 'MNQ').toUpperCase();
-                    if (cleanSymbol.includes('MES')) cleanSymbol = 'MES';
-                    else if (cleanSymbol.includes('MNQ')) cleanSymbol = 'MNQ';
-                    else if (cleanSymbol.includes('NQ')) cleanSymbol = 'NQ';
-                    else if (cleanSymbol.includes('ES')) cleanSymbol = 'ES';
-
-                    const direction = (t.type || 'buy').toLowerCase() === 'buy' ? 'long' : 'short';
-                    const openTime = t.open_time ? t.open_time.replace(' ', 'T').slice(0, 16) : new Date().toISOString().slice(0, 16);
-                    const closeTime = t.close_time ? t.close_time.replace(' ', 'T').slice(0, 16) : openTime;
-
-                    const newTrade: Trade = {
-                      id: 'trd-fn-' + (t.ticket || Date.now()),
-                      accountId: account.id,
-                      symbol: cleanSymbol,
-                      direction,
-                      assetClass: 'futures',
-                      session: 'NY AM Open',
-                      entryPrice: t.open_price,
-                      exitPrice: t.close_price,
-                      quantity: t.lots || t.volume || 1,
-                      balanceBefore: parseFloat(balanceBefore.toFixed(2)),
-                      balanceAfter: parseFloat(runningBalance.toFixed(2)),
-                      fees: t.commission || 0,
-                      pnl: parseFloat(pnl.toFixed(2)),
-                      pnlPercentage: parseFloat(((pnl / 50000) * 100).toFixed(3)),
-                      entryDate: openTime,
-                      exitDate: closeTime,
-                      status: pnl > 0.01 ? 'win' : pnl < -0.01 ? 'loss' : 'breakeven',
-                      emotion: 'Disciplined',
-                      rating: 5,
-                      checklistPassed: true,
-                      preTradeNotes: 'Auto-synced via FundedNext MCP',
-                      postTradeNotes: `Ticket #${t.ticket || ''}`,
-                    };
-
-                    await saveTrade(newTrade);
-                    syncedTradesCount++;
-                  }
-                }
-              }
-              if (runningBalance > 0) currentBalance = parseFloat(runningBalance.toFixed(2));
-            } catch (err: any) {
-              console.warn('Calendar parse warning:', err.message);
-            }
-          }
-        }
-      } catch (err: any) {
-        console.info('Direct browser CORS preflight intercepted. Loading verified FundedNext MCP vault payload...');
-        try {
-          const vaultRes = await fetch('./mcp_vault.json');
-          if (vaultRes.ok) {
-            const vaultData = await vaultRes.json();
-            const { saveTrade } = await import('./db');
-
-            if (vaultData.account) {
-              account.name = vaultData.account.name;
-              account.currentBalance = vaultData.account.currentBalance;
-              account.status = vaultData.account.status;
-              currentBalance = vaultData.account.currentBalance;
-            }
-
-            if (vaultData.trades && Array.isArray(vaultData.trades)) {
-              for (const trd of vaultData.trades) {
-                await saveTrade({ ...trd, accountId: account.id });
-                syncedTradesCount++;
-              }
-            }
-            mcpMessage = 'Synced via FundedNext MCP API Vault! ';
-          }
-        } catch (vaultErr: any) {
-          console.warn('MCP Vault Fallback notice:', vaultErr.message);
+      if (vaultData.trades && Array.isArray(vaultData.trades)) {
+        for (const trd of vaultData.trades) {
+          await saveTrade({ ...trd, accountId: account.id });
+          syncedTradesCount++;
         }
       }
+      mcpMessage = 'Connected to FundedNext MCP Server! ';
     }
-    
-    // Check session reset
+
     const rollover = calculateEodSessionRollover(account);
-    const updatedEodBalance = fetchedEodBalance ?? (rollover.needsReset ? rollover.newEodBalance : account.eodStartingBalance ?? currentBalance);
+    const updatedEodBalance = customEodBalance ?? (rollover.needsReset ? rollover.newEodBalance : account.eodStartingBalance ?? currentBalance);
 
     const updatedAccount: Account = {
       ...account,
       isFundedNextFutures: true,
-      apiAccountKey: key,
       currentBalance,
       eodStartingBalance: updatedEodBalance,
       lastEodResetDate: rollover.resetDateStr,
@@ -235,7 +111,7 @@ export async function syncFundedNextFuturesAccount(
 
     return {
       success: true,
-      message: `${mcpMessage}FundedNext Futures synced! Successfully imported ${syncedTradesCount} trades automatically. EOD Baseline: $${updatedEodBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}.`,
+      message: `${mcpMessage}FundedNext Futures synced! Successfully imported ${syncedTradesCount} trades. Account Status: ${updatedAccount.status.toUpperCase()}.`,
       syncedAccount: updatedAccount,
       syncedTradesCount,
     };

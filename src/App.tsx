@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { Account, Trade, TradingStats } from './types/journal';
+import type { Account, Trade, TradingStats, AccountStatus } from './types/journal';
 import { 
-  getAllAccounts, 
   saveAccount, 
   deleteAccount, 
   getTradesByAccount, 
@@ -51,50 +50,42 @@ export function App() {
   const [isFundedNextSyncOpen, setIsFundedNextSyncOpen] = useState(false);
 
   const reloadData = async () => {
-    let accList = await getAllAccounts();
-    
-    // Purge any legacy blown account objects and maintain only active Futures Flex $50K
-    const { deleteAccount: removeAccountFromDb } = await import('./services/db');
-    for (const acc of accList) {
-      if (acc.id !== 'acc-1786666607627' || acc.name.includes('Apex') || acc.name === '50k FundedNext Eval') {
-        await removeAccountFromDb(acc.id);
+    let vaultData: any = null;
+    try {
+      const vRes = await fetch('./mcp_vault.json');
+      if (vRes.ok) vaultData = await vRes.json();
+    } catch(e) {}
+
+    const targetAccId = 'acc-1786666607627';
+    let activeAccount: Account = {
+      id: targetAccId,
+      name: vaultData?.account?.name || 'Futures Flex Challenge | 50K (961318602)',
+      type: 'eval',
+      initialBalance: 50000,
+      currentBalance: vaultData?.account?.currentBalance || 48718.35,
+      profitTarget: 2500,
+      maxDrawdown: 1384.55,
+      dailyLossLimit: 1384.55,
+      isFundedNextFutures: true,
+      eodStartingBalance: 50000,
+      peakEodBalance: 50000,
+      payoutThreshold: 1500,
+      status: (vaultData?.account?.status as AccountStatus) || 'failed',
+      createdAt: new Date().toISOString(),
+      notes: vaultData?.account?.notes || 'Breached on FundedNext: Monthly Loss Limit'
+    };
+
+    await saveAccount(activeAccount);
+    setAccounts([activeAccount]);
+    setActiveAccountId(targetAccId);
+
+    // Save 92 trades from vault
+    if (vaultData?.trades && Array.isArray(vaultData.trades)) {
+      for (const trd of vaultData.trades) {
+        await saveTrade({ ...trd, accountId: targetAccId });
       }
     }
-    
-    accList = await getAllAccounts();
-    if (accList.length === 0) {
-      const activeAccount: Account = {
-        id: 'acc-1786666607627',
-        name: 'Futures Flex $50K (FN***57069)',
-        type: 'eval',
-        initialBalance: 50000,
-        currentBalance: 48718.35,
-        profitTarget: 2500,
-        maxDrawdown: 1384.55,
-        dailyLossLimit: 1384.55,
-        isFundedNextFutures: true,
-        eodStartingBalance: 50000,
-        peakEodBalance: 50000,
-        payoutThreshold: 1500,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        notes: 'FundedNext Futures Flex - Tradovate Platform'
-      };
-      await saveAccount(activeAccount);
-      accList = [activeAccount];
-    }
-
-    setAccounts(accList);
-    setActiveAccountId(accList[0].id);
-
-    let tradeList = await getTradesByAccount(accList[0].id);
-    if (tradeList.length < 90) {
-      const { SEED_DATA } = await import('./services/dbSync');
-      for (const trd of SEED_DATA.trades) {
-        await saveTrade({ ...trd, accountId: accList[0].id });
-      }
-      tradeList = await getTradesByAccount(accList[0].id);
-    }
+    const tradeList = await getTradesByAccount(targetAccId);
     setTrades(tradeList);
   };
 
