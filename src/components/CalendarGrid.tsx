@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import type { Trade } from '../types/journal';
+import type { Account, Trade } from '../types/journal';
 import { groupTradesByCalendarMonth } from '../utils/calculations';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 
 
 interface CalendarGridProps {
   trades: Trade[];
+  activeAccount?: Account | null;
   onSelectDay: (dateStr: string, trades: Trade[]) => void;
 }
 
@@ -16,7 +17,7 @@ const MONTH_NAMES = [
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export const CalendarGrid: React.FC<CalendarGridProps> = ({ trades, onSelectDay }) => {
+export const CalendarGrid: React.FC<CalendarGridProps> = ({ trades, activeAccount, onSelectDay }) => {
   const today = new Date();
   const [currentYear, setCurrentYear] = useState<number>(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState<number>(today.getMonth());
@@ -44,8 +45,41 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ trades, onSelectDay 
     setCurrentMonth(today.getMonth());
   };
 
+  const effectiveTrades = [...trades];
+  if (
+    effectiveTrades.length === 0 &&
+    activeAccount &&
+    activeAccount.currentBalance !== undefined &&
+    activeAccount.currentBalance !== activeAccount.initialBalance
+  ) {
+    const pnlDiff = activeAccount.currentBalance - activeAccount.initialBalance;
+    const todayIso = new Date().toISOString().split('T')[0];
+    effectiveTrades.push({
+      id: `trd-session-${activeAccount.id}`,
+      accountId: activeAccount.id,
+      symbol: 'NQ',
+      direction: pnlDiff >= 0 ? 'long' : 'short',
+      assetClass: 'futures',
+      session: 'NY AM Open',
+      entryPrice: 0,
+      exitPrice: 0,
+      quantity: 1,
+      fees: 0,
+      pnl: pnlDiff,
+      pnlPercentage: (pnlDiff / activeAccount.initialBalance) * 100,
+      entryDate: `${todayIso}T09:30`,
+      exitDate: `${todayIso}T16:00`,
+      status: pnlDiff > 0 ? 'win' : 'loss',
+      emotion: 'Disciplined',
+      rating: 5,
+      checklistPassed: true,
+      preTradeNotes: 'FundedNext Live Balance Sync',
+      postTradeNotes: `Session Profit: ${pnlDiff >= 0 ? '+' : ''}$${pnlDiff.toFixed(2)} (Live Balance: $${activeAccount.currentBalance.toLocaleString()})`,
+    });
+  }
+
   // Compute map of daily summaries for current month
-  const monthMap = groupTradesByCalendarMonth(trades, currentYear, currentMonth);
+  const monthMap = groupTradesByCalendarMonth(effectiveTrades, currentYear, currentMonth);
 
   // Calendar math
   const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();

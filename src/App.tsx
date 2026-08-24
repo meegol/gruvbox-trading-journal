@@ -81,7 +81,41 @@ export function App() {
           : accs[0]?.id || 'acc-963132214';
 
       setActiveAccountId(targetId);
-      const tradeList = await getTradesByAccount(targetId);
+      let tradeList = await getTradesByAccount(targetId);
+      const activeAcc = accs.find((a) => a.id === targetId);
+      if (
+        tradeList.length === 0 &&
+        activeAcc &&
+        activeAcc.currentBalance !== undefined &&
+        activeAcc.currentBalance !== activeAcc.initialBalance
+      ) {
+        const pnlDiff = activeAcc.currentBalance - activeAcc.initialBalance;
+        const todayIso = new Date().toISOString().split('T')[0];
+        const sessionTrade: Trade = {
+          id: `trd-fn-session-${activeAcc.id}`,
+          accountId: activeAcc.id,
+          symbol: 'NQ',
+          direction: pnlDiff >= 0 ? 'long' : 'short',
+          assetClass: 'futures',
+          session: 'NY AM Open',
+          entryPrice: 0,
+          exitPrice: 0,
+          quantity: 1,
+          fees: 0,
+          pnl: pnlDiff,
+          pnlPercentage: (pnlDiff / activeAcc.initialBalance) * 100,
+          entryDate: `${todayIso}T09:30`,
+          exitDate: `${todayIso}T16:00`,
+          status: pnlDiff > 0 ? 'win' : 'loss',
+          emotion: 'Disciplined',
+          rating: 5,
+          checklistPassed: true,
+          preTradeNotes: 'FundedNext Live Balance Sync',
+          postTradeNotes: `Session Profit: ${pnlDiff >= 0 ? '+' : ''}$${pnlDiff.toFixed(2)} (Live Balance: $${activeAcc.currentBalance.toLocaleString()})`,
+        };
+        await saveTrade(sessionTrade);
+        tradeList = [sessionTrade];
+      }
       setTrades(tradeList);
     } catch (e) {
       console.error('Error reloading data:', e);
@@ -105,9 +139,46 @@ export function App() {
 
   useEffect(() => {
     if (accounts.length > 0) {
-      getTradesByAccount(activeAccountId).then(setTrades);
+      getTradesByAccount(activeAccountId).then(async (list) => {
+        const currentAcc = accounts.find((a) => a.id === activeAccountId);
+        if (
+          list.length === 0 &&
+          currentAcc &&
+          currentAcc.currentBalance !== undefined &&
+          currentAcc.currentBalance !== currentAcc.initialBalance
+        ) {
+          const pnlDiff = currentAcc.currentBalance - currentAcc.initialBalance;
+          const todayIso = new Date().toISOString().split('T')[0];
+          const sessionTrade: Trade = {
+            id: `trd-fn-session-${currentAcc.id}`,
+            accountId: currentAcc.id,
+            symbol: 'NQ',
+            direction: pnlDiff >= 0 ? 'long' : 'short',
+            assetClass: 'futures',
+            session: 'NY AM Open',
+            entryPrice: 0,
+            exitPrice: 0,
+            quantity: 1,
+            fees: 0,
+            pnl: pnlDiff,
+            pnlPercentage: (pnlDiff / currentAcc.initialBalance) * 100,
+            entryDate: `${todayIso}T09:30`,
+            exitDate: `${todayIso}T16:00`,
+            status: pnlDiff > 0 ? 'win' : 'loss',
+            emotion: 'Disciplined',
+            rating: 5,
+            checklistPassed: true,
+            preTradeNotes: 'FundedNext Live Balance Sync',
+            postTradeNotes: `Session Profit: ${pnlDiff >= 0 ? '+' : ''}$${pnlDiff.toFixed(2)} (Live Balance: $${currentAcc.currentBalance.toLocaleString()})`,
+          };
+          await saveTrade(sessionTrade);
+          setTrades([sessionTrade]);
+        } else {
+          setTrades(list);
+        }
+      });
     }
-  }, [activeAccountId]);
+  }, [activeAccountId, accounts]);
 
   const handleToggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -259,6 +330,7 @@ export function App() {
         {activeTab === 'calendar' && (
           <CalendarGrid
             trades={trades}
+            activeAccount={activeAccount}
             onSelectDay={(dateStr, dayTrades) => setDayInspector({ dateStr, trades: dayTrades })}
           />
         )}
