@@ -90,6 +90,50 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ trades, onSelectDay 
     });
   }
 
+  // Chunk calendar cells into weeks (7 days per row) and compute weekly PnL
+  const weekRows = [];
+  for (let i = 0; i < calendarCells.length; i += 7) {
+    const row = calendarCells.slice(i, i + 7);
+    while (row.length < 7) {
+      row.push(null);
+    }
+    let weekPnl = 0;
+    let weekTrades = 0;
+    let weekWins = 0;
+    let weekLosses = 0;
+    let weekNetR = 0;
+    const weekTradeList: Trade[] = [];
+
+    for (const cell of row) {
+      if (cell && cell.summary) {
+        weekPnl += cell.summary.pnl;
+        weekTrades += cell.summary.tradeCount;
+        weekWins += cell.summary.winCount;
+        weekLosses += cell.summary.lossCount;
+        weekNetR += cell.summary.netR || 0;
+        weekTradeList.push(...cell.summary.trades);
+      }
+    }
+
+    const hasWeekTrades = weekTrades > 0;
+    const isWeekPositive = weekPnl > 0.01;
+    const isWeekNegative = weekPnl < -0.01;
+
+    weekRows.push({
+      cells: row,
+      weekIndex: Math.floor(i / 7) + 1,
+      weekPnl,
+      weekTrades,
+      weekWins,
+      weekLosses,
+      weekNetR,
+      trades: weekTradeList,
+      hasWeekTrades,
+      isWeekPositive,
+      isWeekNegative,
+    });
+  }
+
   return (
     <div className="glass-panel p-5 md:p-6 transition-all">
       {/* Calendar Header & Month Navigation */}
@@ -103,7 +147,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ trades, onSelectDay 
               PnL CALENDAR
             </h2>
             <p className="text-xs text-[var(--gruv-muted)] font-mono">
-              Daily Profit &amp; Loss breakdown
+              Daily &amp; Weekly Profit / Loss Breakdown
             </p>
           </div>
         </div>
@@ -121,8 +165,6 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ trades, onSelectDay 
           <span className="font-mono font-bold text-sm text-[var(--gruv-fg)] px-3 min-w-[140px] text-center tracking-wider">
             {MONTH_NAMES[currentMonth]} {currentYear}
           </span>
-
-
 
           <button
             onClick={handleNextMonth}
@@ -174,92 +216,143 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ trades, onSelectDay 
         </div>
       </div>
 
-      {/* Day of Week Headers */}
-      <div className="grid grid-cols-7 gap-1 md:gap-2 text-center font-mono text-xs font-bold text-[var(--gruv-muted)] mb-2">
+      {/* Day of Week Headers with Weekly Summary Column */}
+      <div className="grid grid-cols-8 gap-1 md:gap-2 text-center font-mono text-xs font-bold text-[var(--gruv-muted)] mb-2">
         {DAYS_OF_WEEK.map((day) => (
           <div key={day} className="py-1 uppercase tracking-wider text-[10px] md:text-xs">
             {day}
           </div>
         ))}
+        <div className="py-1 uppercase tracking-wider text-[10px] md:text-xs text-[var(--gruv-yellow)] bg-[var(--gruv-bg)]/40 rounded border border-[var(--gruv-border)]">
+          WEEK PnL
+        </div>
       </div>
 
-      {/* Calendar Grid Cells */}
-      <div className="grid grid-cols-7 gap-1.5 md:gap-2">
-        {calendarCells.map((cell, idx) => {
-          if (!cell) {
-            return (
-              <div
-                key={`empty-${idx}`}
-                className="h-20 md:h-24 rounded-xl bg-[var(--gruv-bg)]/20 border border-transparent"
-              />
-            );
-          }
+      {/* Calendar Grid with 8 Columns (7 Days + Week Total) */}
+      <div className="grid grid-cols-8 gap-1.5 md:gap-2">
+        {weekRows.map((week) => (
+          <React.Fragment key={`week-row-${week.weekIndex}`}>
+            {/* 7 Days */}
+            {week.cells.map((cell, cIdx) => {
+              if (!cell) {
+                return (
+                  <div
+                    key={`empty-${week.weekIndex}-${cIdx}`}
+                    className="h-20 md:h-24 rounded-xl bg-[var(--gruv-bg)]/20 border border-transparent"
+                  />
+                );
+              }
 
-          const { dayNumber, dateStr, summary } = cell;
-          const isTodayCell =
-            today.getFullYear() === currentYear &&
-            today.getMonth() === currentMonth &&
-            today.getDate() === dayNumber;
+              const { dayNumber, dateStr, summary } = cell;
+              const isTodayCell =
+                today.getFullYear() === currentYear &&
+                today.getMonth() === currentMonth &&
+                today.getDate() === dayNumber;
 
-          const hasTrades = summary && summary.tradeCount > 0;
-          const isWinDay = hasTrades && summary.pnl > 0.01;
-          const isLossDay = hasTrades && summary.pnl < -0.01;
+              const hasTrades = summary && summary.tradeCount > 0;
+              const isWinDay = hasTrades && summary.pnl > 0.01;
+              const isLossDay = hasTrades && summary.pnl < -0.01;
 
-          return (
+              return (
+                <div
+                  key={dateStr}
+                  onClick={() => {
+                    if (hasTrades) {
+                      onSelectDay(dateStr, summary.trades);
+                    }
+                  }}
+                  className={`h-20 md:h-24 rounded-xl p-2 font-mono flex flex-col justify-between transition-all duration-200 border relative ${
+                    hasTrades ? 'cursor-pointer hover:scale-[1.03] shadow-md' : 'opacity-60'
+                  } ${
+                    isWinDay
+                      ? 'bg-[var(--gruv-green)]/15 border-[var(--gruv-green)]/40 hover:border-[var(--gruv-green)] hover:shadow-[var(--gruv-green)]/20'
+                      : isLossDay
+                      ? 'bg-[var(--gruv-red)]/15 border-[var(--gruv-red)]/40 hover:border-[var(--gruv-red)] hover:shadow-[var(--gruv-red)]/20'
+                      : hasTrades
+                      ? 'bg-[var(--gruv-surface)] border-[var(--gruv-border)]'
+                      : 'bg-[var(--gruv-bg)]/40 border-[var(--gruv-border)]/50'
+                  } ${isTodayCell ? 'ring-2 ring-[var(--gruv-yellow)]' : ''}`}
+                >
+                  {/* Day Header */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className={`font-bold ${isTodayCell ? 'text-[var(--gruv-yellow)] font-extrabold' : 'text-[var(--gruv-fg)]'}`}>
+                      {dayNumber}
+                    </span>
+                    {hasTrades && (
+                      <span className="text-[9px] md:text-[10px] px-1.5 py-0.2 rounded font-bold bg-[var(--gruv-bg)] text-[var(--gruv-muted)] border border-[var(--gruv-border)]">
+                        {summary.tradeCount}T
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Day Content */}
+                  {hasTrades ? (
+                    <div className="my-auto text-right">
+                      <div className={`text-xs md:text-sm font-bold font-mono tracking-wider truncate ${isWinDay ? 'text-[var(--gruv-green)]' : isLossDay ? 'text-[var(--gruv-red)]' : 'text-[var(--gruv-fg)]'}`}>
+                        {summary.pnl >= 0 ? '+' : ''}${summary.pnl.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </div>
+                      {summary.netR !== 0 && (
+                        <div className="text-[9px] text-[var(--gruv-muted)] font-mono">
+                          {summary.netR > 0 ? '+' : ''}{summary.netR.toFixed(1)}R
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-[var(--gruv-muted)]/40 text-center my-auto font-mono">
+                      -
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* 8th Column: Weekly Total */}
             <div
-              key={dateStr}
               onClick={() => {
-                if (hasTrades) {
-                  onSelectDay(dateStr, summary.trades);
+                if (week.hasWeekTrades) {
+                  onSelectDay(`Week ${week.weekIndex} Summary`, week.trades);
                 }
               }}
-              className={`h-20 md:h-24 rounded-xl p-2 font-mono flex flex-col justify-between transition-all duration-200 border relative ${
-                hasTrades ? 'cursor-pointer hover:scale-[1.03] shadow-md' : 'opacity-60'
-              } ${
-                isWinDay
-                  ? 'bg-[var(--gruv-green)]/15 border-[var(--gruv-green)]/40 hover:border-[var(--gruv-green)] hover:shadow-[var(--gruv-green)]/20'
-                  : isLossDay
-                  ? 'bg-[var(--gruv-red)]/15 border-[var(--gruv-red)]/40 hover:border-[var(--gruv-red)] hover:shadow-[var(--gruv-red)]/20'
-                  : hasTrades
-                  ? 'bg-[var(--gruv-surface)] border-[var(--gruv-border)]'
-                  : 'bg-[var(--gruv-bg)]/40 border-[var(--gruv-border)]/50'
-              } ${isTodayCell ? 'ring-2 ring-[var(--gruv-yellow)]' : ''}`}
+              className={`h-20 md:h-24 rounded-xl p-2 font-mono flex flex-col justify-between border transition-all ${
+                week.hasWeekTrades
+                  ? `cursor-pointer hover:scale-[1.03] shadow ${
+                      week.isWeekPositive
+                        ? 'bg-[var(--gruv-green)]/20 border-[var(--gruv-green)]/50 hover:border-[var(--gruv-green)]'
+                        : week.isWeekNegative
+                        ? 'bg-[var(--gruv-red)]/20 border-[var(--gruv-red)]/50 hover:border-[var(--gruv-red)]'
+                        : 'bg-[var(--gruv-surface)] border-[var(--gruv-border)]'
+                    }`
+                  : 'bg-[var(--gruv-bg)]/20 border-[var(--gruv-border)]/30 opacity-40'
+              }`}
             >
-              {/* Day Header */}
-              <div className="flex items-center justify-between text-xs">
-                <span className={`font-bold ${isTodayCell ? 'text-[var(--gruv-yellow)] font-extrabold' : 'text-[var(--gruv-fg)]'}`}>
-                  {dayNumber}
-                </span>
-                {hasTrades && (
-                  <span className="text-[9px] md:text-[10px] px-1.5 py-0.2 rounded font-bold bg-[var(--gruv-bg)] text-[var(--gruv-muted)] border border-[var(--gruv-border)]">
-                    {summary.tradeCount}T
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[var(--gruv-muted)]">
+                <span className="text-[var(--gruv-yellow)]">W{week.weekIndex}</span>
+                {week.hasWeekTrades && (
+                  <span className="text-[9px] px-1 py-0.2 rounded bg-[var(--gruv-bg)] text-[var(--gruv-fg)] border border-[var(--gruv-border)]">
+                    {week.weekTrades}T
                   </span>
                 )}
               </div>
 
-              {/* Day Content */}
-              {hasTrades ? (
+              {week.hasWeekTrades ? (
                 <div className="my-auto text-right">
-                  <div className={`text-xs md:text-sm font-bold font-mono tracking-wider truncate ${isWinDay ? 'text-[var(--gruv-green)]' : isLossDay ? 'text-[var(--gruv-red)]' : 'text-[var(--gruv-fg)]'}`}>
-                    {summary.pnl >= 0 ? '+' : ''}${summary.pnl.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  <div className={`text-xs md:text-sm font-extrabold font-mono tracking-wider truncate ${
+                    week.isWeekPositive ? 'text-[var(--gruv-green)]' : week.isWeekNegative ? 'text-[var(--gruv-red)]' : 'text-[var(--gruv-fg)]'
+                  }`}>
+                    {week.weekPnl >= 0 ? '+' : ''}${week.weekPnl.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
-
-
-
-                  {summary.netR !== 0 && (
-                    <div className="text-[9px] text-[var(--gruv-muted)] font-mono">
-                      {summary.netR > 0 ? '+' : ''}{summary.netR.toFixed(1)}R
-                    </div>
-                  )}
+                  <div className="text-[9px] text-[var(--gruv-muted)] font-mono">
+                    {((week.weekWins / week.weekTrades) * 100).toFixed(0)}% win
+                  </div>
                 </div>
               ) : (
-                <div className="text-[10px] text-[var(--gruv-muted)]/40 text-center my-auto font-mono">
+                <div className="text-[10px] text-[var(--gruv-muted)]/30 text-center my-auto font-mono">
                   -
                 </div>
               )}
             </div>
-          );
-        })}
+          </React.Fragment>
+        ))}
       </div>
     </div>
   );

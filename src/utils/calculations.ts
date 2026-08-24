@@ -305,27 +305,46 @@ export function groupTradesByCalendarMonth(trades: Trade[], year: number, month:
   const map = new Map<string, CalendarDaySummary>();
 
   for (const trade of trades) {
-    const d = new Date(trade.entryDate);
-    if (d.getFullYear() === year && d.getMonth() === month) {
-      const dateStr = d.toISOString().split('T')[0];
-      const existing = map.get(dateStr) || {
-        dateStr,
-        pnl: 0,
-        tradeCount: 0,
-        winCount: 0,
-        lossCount: 0,
-        netR: 0,
-        trades: [],
-      };
+    let dateStr = '';
+    if (trade.entryDate) {
+      if (trade.entryDate.includes('T')) {
+        dateStr = trade.entryDate.split('T')[0];
+      } else {
+        const d = new Date(trade.entryDate);
+        if (!isNaN(d.getTime())) {
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          dateStr = `${y}-${m}-${day}`;
+        }
+      }
+    }
 
-      existing.pnl += trade.pnl;
-      existing.tradeCount += 1;
-      if (trade.pnl > 0.01) existing.winCount += 1;
-      else if (trade.pnl < -0.01) existing.lossCount += 1;
-      if (trade.rMultiple) existing.netR += trade.rMultiple;
-      existing.trades.push(trade);
+    if (dateStr) {
+      const [tYearStr, tMonthStr] = dateStr.split('-');
+      const tYear = parseInt(tYearStr, 10);
+      const tMonth = parseInt(tMonthStr, 10) - 1;
 
-      map.set(dateStr, existing);
+      if (tYear === year && tMonth === month) {
+        const existing = map.get(dateStr) || {
+          dateStr,
+          pnl: 0,
+          tradeCount: 0,
+          winCount: 0,
+          lossCount: 0,
+          netR: 0,
+          trades: [],
+        };
+
+        existing.pnl += trade.pnl;
+        existing.tradeCount += 1;
+        if (trade.pnl > 0.01) existing.winCount += 1;
+        else if (trade.pnl < -0.01) existing.lossCount += 1;
+        if (trade.rMultiple) existing.netR += trade.rMultiple;
+        existing.trades.push(trade);
+
+        map.set(dateStr, existing);
+      }
     }
   }
 
