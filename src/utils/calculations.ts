@@ -1,19 +1,27 @@
 import type { Account, Trade, TradingStats, CalendarDaySummary, EmotionStat, EmotionRating, SessionStat, TradingSession } from '../types/journal';
 
-export function computeTradingStats(trades: Trade[], initialBalance: number): TradingStats {
+export function computeTradingStats(
+  trades: Trade[],
+  initialBalance: number,
+  overrideBalance?: number
+): TradingStats {
+  const currentBalance = overrideBalance !== undefined ? overrideBalance : initialBalance;
+  const netFromBalance = currentBalance - initialBalance;
+
   if (trades.length === 0) {
+    const isProfitable = netFromBalance > 0;
     return {
       totalTrades: 0,
       winCount: 0,
       lossCount: 0,
       breakevenCount: 0,
       winRate: 0,
-      totalPnl: 0,
+      totalPnl: netFromBalance,
       averagePnl: 0,
       totalFees: 0,
-      avgWin: 0,
+      avgWin: isProfitable ? netFromBalance : 0,
       avgLoss: 0,
-      profitFactor: 0,
+      profitFactor: isProfitable ? 999 : 0,
       avgRMultiple: 0,
       expectancy: 0,
       maxDrawdownAmount: 0,
@@ -22,9 +30,9 @@ export function computeTradingStats(trades: Trade[], initialBalance: number): Tr
       longWinRate: 0,
       shortCount: 0,
       shortWinRate: 0,
-      bestTrade: 0,
+      bestTrade: isProfitable ? netFromBalance : 0,
       worstTrade: 0,
-      peakBalance: initialBalance,
+      peakBalance: Math.max(initialBalance, currentBalance),
     };
   }
 
@@ -140,8 +148,14 @@ export function computeTradingStats(trades: Trade[], initialBalance: number): Tr
 
 export function computeAccountProgress(account: Account, trades: Trade[]) {
   const accountTrades = trades.filter((t) => t.accountId === account.id);
-  const netPnl = accountTrades.reduce((acc, t) => acc + t.pnl, 0);
-  const currentBalance = account.initialBalance + netPnl;
+  const tradePnlSum = accountTrades.reduce((acc, t) => acc + t.pnl, 0);
+
+  // If closed trades exist in journal, calculate from trades; otherwise use account.currentBalance
+  const currentBalance = accountTrades.length > 0
+    ? account.initialBalance + tradePnlSum
+    : (account.currentBalance || account.initialBalance);
+
+  const netPnl = currentBalance - account.initialBalance;
 
   // Compute Today's PnL for Daily Loss Limit Guard
   const todayStr = new Date().toISOString().split('T')[0];
@@ -149,14 +163,13 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
     (t) => new Date(t.entryDate).toISOString().split('T')[0] === todayStr
   );
   const todayPnl = todayTrades.reduce((acc, t) => acc + t.pnl, 0);
-  const dailyLossLimit = account.dailyLossLimit || 500;
 
-  // FundedNext Futures Flex Drawdown Engine (Matches exact dashboard parameters)
+  // FundedNext Futures Flex Drawdown Engine
   const isFundedNextFutures = !!account.isFundedNextFutures;
-  const maxLossLimit = account.dailyLossLimit || 1384.55;
+  const maxLossLimit = account.maxDrawdown || account.dailyLossLimit || 1500;
   const intradayLoss = todayPnl < 0 ? Math.abs(todayPnl) : 0;
 
-  let peakBalance = account.initialBalance;
+  let peakBalance = Math.max(account.initialBalance, currentBalance);
   let running = account.initialBalance;
   let maxDrawdownUsed = 0;
 
@@ -171,14 +184,9 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
     if (dd > maxDrawdownUsed) maxDrawdownUsed = dd;
   }
 
-  const eodCushionRemaining = isFundedNextFutures 
-    ? Math.max(0, maxLossLimit - intradayLoss)
-    : Math.max(0, account.maxDrawdown - maxDrawdownUsed);
-
-  const hardAccountFloor = 48527.40;
-  const eodLossFloor = isFundedNextFutures
-    ? hardAccountFloor
-    : account.initialBalance - maxLossLimit;
+  const hardAccountFloor = account.initialBalance - maxLossLimit;
+  const eodLossFloor = (account.eodStartingBalance || account.initialBalance) - (account.dailyLossLimit || 1000);
+  const eodCushionRemaining = Math.max(0, currentBalance - hardAccountFloor);
 
   const eodDailyDrawdownPercent = isFundedNextFutures 
     ? Math.min(100, Math.max(0, (intradayLoss / maxLossLimit) * 100))
@@ -186,7 +194,7 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
 
   const isDailyLimitBreached = isFundedNextFutures
     ? eodCushionRemaining <= 0
-    : todayPnl <= -dailyLossLimit;
+    : todayPnl <= -(account.dailyLossLimit || 1000);
 
   const drawdownBufferRemaining = eodCushionRemaining;
   const drawdownUsedPercent = isFundedNextFutures 
@@ -204,11 +212,11 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
   };
 
   if (account.type === 'eval') {
-    const target = account.profitTarget || 3000;
+    const target = account.profitTarget || 2500;
     const progressPct = Math.min(100, Math.max(0, (netPnl / target) * 100));
     const remainingToPass = Math.max(0, target - netPnl);
     const isPassed = netPnl >= target;
-    const isFailed = maxDrawdownUsed >= account.maxDrawdown;
+    const isFailed = currentBalance <= hardAccountFloor;
 
     const effectiveMaxDd = isFundedNextFutures ? maxLossLimit : account.maxDrawdown;
     const effectiveDdUsed = isFundedNextFutures ? intradayLoss : maxDrawdownUsed;
@@ -227,7 +235,7 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
       dailyLossLimit: maxLossLimit,
       isDailyLimitBreached,
       isPassed,
-      isFailed: eodCushionRemaining <= 0,
+      isFailed,
       typeLabel: isFundedNextFutures ? 'FundedNext Futures Eval' : 'Evaluation',
       statusText: isPassed
         ? 'PASSED - Target Achieved'
@@ -243,7 +251,7 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
     const progressPct = Math.min(100, Math.max(0, (netPnl / threshold) * 100));
     const remainingToPayout = Math.max(0, threshold - netPnl);
     const isEligible = netPnl >= threshold;
-    const isFailed = maxDrawdownUsed >= account.maxDrawdown;
+    const isFailed = currentBalance <= hardAccountFloor;
 
     return {
       netPnl,
@@ -256,7 +264,7 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
       drawdownUsedPercent,
       drawdownBufferRemaining,
       todayPnl,
-      dailyLossLimit,
+      dailyLossLimit: account.dailyLossLimit || 1000,
       isDailyLimitBreached,
       isEligible,
       isFailed,
@@ -281,16 +289,17 @@ export function computeAccountProgress(account: Account, trades: Trade[]) {
       drawdownUsedPercent,
       drawdownBufferRemaining,
       todayPnl,
-      dailyLossLimit,
+      dailyLossLimit: account.dailyLossLimit || 1000,
       isDailyLimitBreached,
+      isPassed: false,
+      isFailed: false,
       typeLabel: 'Personal Account',
-      statusText: isDailyLimitBreached
-        ? 'DAILY LOSS LIMIT BREACHED — WALK AWAY FOR THE DAY'
-        : `Total Return: ${growthPercent >= 0 ? '+' : ''}${growthPercent.toFixed(2)}%`,
+      statusText: `${growthPercent >= 0 ? '+' : ''}${growthPercent.toFixed(2)}% Growth`,
       ...fundedNextDetails,
     };
   }
 }
+
 
 export function groupTradesByCalendarMonth(trades: Trade[], year: number, month: number): Map<string, CalendarDaySummary> {
   const map = new Map<string, CalendarDaySummary>();

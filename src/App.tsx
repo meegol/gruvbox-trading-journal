@@ -158,7 +158,7 @@ export function App() {
 
   const activeAccount = accounts.find((a) => a.id === activeAccountId) || null;
   const initialBalance = activeAccount ? activeAccount.initialBalance : 50000;
-  const stats: TradingStats = computeTradingStats(trades, initialBalance);
+  const stats: TradingStats = computeTradingStats(trades, initialBalance, activeAccount?.currentBalance);
 
   return (
     <div className="min-h-screen bg-[var(--gruv-bg)] text-[var(--gruv-fg)] font-mono selection:bg-[var(--gruv-yellow)] selection:text-[#1d2021]">

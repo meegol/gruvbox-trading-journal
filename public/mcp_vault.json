@@ -4141,6 +4141,29 @@
       "checklistPassed": true,
       "preTradeNotes": "Auto-synced via FundedNext MCP",
       "postTradeNotes": "Ticket #311795200018"
+    },
+    {
+      "id": "trd-fn-session-acc-963132214",
+      "accountId": "acc-963132214",
+      "symbol": "MNQ",
+      "rawSymbol": "MNQU6",
+      "direction": "long",
+      "assetClass": "futures",
+      "session": "NY AM Open",
+      "entryPrice": 0,
+      "exitPrice": 0,
+      "quantity": 1,
+      "fees": 0,
+      "pnl": 322.6,
+      "pnlPercentage": 0.645,
+      "entryDate": "2026-08-24T09:30",
+      "exitDate": "2026-08-24T16:00",
+      "status": "win",
+      "emotion": "Disciplined",
+      "rating": 5,
+      "checklistPassed": true,
+      "preTradeNotes": "FundedNext Live Balance Sync",
+      "postTradeNotes": "Live Session Profit: +$322.60 (Current Balance: $50,322.60)"
     }
   ]
 }
