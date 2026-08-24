@@ -27,6 +27,7 @@ import { CalculatorModal } from './components/CalculatorModal';
 import { BackupModal } from './components/BackupModal';
 import { LockScreenModal } from './components/LockScreenModal';
 import { FundedNextSyncModal } from './components/FundedNextSyncModal';
+import { FundedNextSafetyRadar } from './components/FundedNextSafetyRadar';
 import { MonteCarloView } from './components/MonteCarloView';
 
 import { Calendar, TrendingUp, Table, BarChart2, Activity } from 'lucide-react';
@@ -261,6 +262,11 @@ export function App() {
           account={activeAccount}
           trades={trades}
           onOpenEditAccount={() => setIsAccountModalOpen(true)}
+        />
+
+        <FundedNextSafetyRadar
+          account={activeAccount}
+          trades={trades}
         />
 
         <SummaryCards stats={stats} />
