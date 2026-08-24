@@ -17,6 +17,8 @@ export interface Account {
   maxDrawdown: number;
   dailyLossLimit?: number; // e.g. 1500 for $1500 max loss
   isFundedNextFutures?: boolean;
+  fundedNextAccountId?: number | string;
+  login?: number | string;
   eodStartingBalance?: number;
   peakEodBalance?: number;
   lastEodResetDate?: string;

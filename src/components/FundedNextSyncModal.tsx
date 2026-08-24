@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Account } from '../types/journal';
-import { syncFundedNextFuturesAccount, updateAccountEodStartingBalance } from '../services/fundedNextSync';
-import { X, RefreshCw, Key, ShieldCheck, HelpCircle, CheckCircle, AlertTriangle } from 'lucide-react';
+import { syncFundedNextFuturesAccount, syncAllFundedNextAccounts, updateAccountEodStartingBalance } from '../services/fundedNextSync';
+import { X, RefreshCw, Key, ShieldCheck, HelpCircle, CheckCircle, AlertTriangle, Layers } from 'lucide-react';
 
 interface FundedNextSyncModalProps {
   isOpen: boolean;
@@ -48,6 +48,23 @@ export const FundedNextSyncModal: React.FC<FundedNextSyncModalProps> = ({
     if (res.success && res.syncedAccount) {
       setStatusMessage({ type: 'success', text: res.message });
       onAccountUpdated(res.syncedAccount);
+    } else {
+      setStatusMessage({ type: 'error', text: res.message });
+    }
+  };
+
+  const handleSyncAll = async () => {
+    setIsSyncing(true);
+    setStatusMessage(null);
+
+    const res = await syncAllFundedNextAccounts(sessionToken || apiAccountKey);
+    setIsSyncing(false);
+
+    if (res.success && res.syncedAccounts) {
+      setStatusMessage({ type: 'success', text: res.message });
+      if (res.syncedAccounts.length > 0) {
+        onAccountUpdated(res.syncedAccounts[0]);
+      }
     } else {
       setStatusMessage({ type: 'error', text: res.message });
     }
@@ -208,14 +225,25 @@ export const FundedNextSyncModal: React.FC<FundedNextSyncModalProps> = ({
               </p>
             </div>
 
-            <button
-              onClick={handleSyncNow}
-              disabled={isSyncing}
-              className="w-full mt-2 py-3 px-4 rounded-xl bg-[var(--gruv-yellow)] text-[var(--gruv-bg)] font-bold hover:brightness-110 transition-all flex items-center justify-center space-x-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? 'SYNCING WITH FUNDEDNEXT...' : 'FETCH & SYNC FUNDEDNEXT FUTURES'}</span>
-            </button>
+            <div className="space-y-2 pt-1">
+              <button
+                onClick={handleSyncNow}
+                disabled={isSyncing}
+                className="w-full py-3 px-4 rounded-xl bg-[var(--gruv-yellow)] text-[var(--gruv-bg)] font-bold hover:brightness-110 transition-all flex items-center justify-center space-x-2 shadow"
+              >
+                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'SYNCING WITH FUNDEDNEXT...' : 'FETCH & SYNC SELECTED ACCOUNT'}</span>
+              </button>
+
+              <button
+                onClick={handleSyncAll}
+                disabled={isSyncing}
+                className="w-full py-2.5 px-4 rounded-xl bg-[var(--gruv-bg-soft)] border border-[var(--gruv-border)] hover:border-[var(--gruv-yellow)] text-[var(--gruv-fg)] font-bold transition-all flex items-center justify-center space-x-2"
+              >
+                <Layers className={`w-4 h-4 text-[var(--gruv-yellow)] ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>REFRESH ALL PORTFOLIO ACCOUNTS & TRADES</span>
+              </button>
+            </div>
           </div>
         )}
 

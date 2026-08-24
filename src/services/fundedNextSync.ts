@@ -1,19 +1,12 @@
 import type { Account, Trade } from '../types/journal';
-import { saveAccount } from './db';
+import { saveAccount, saveTrade } from './db';
 
 export interface FundedNextSyncResult {
   success: boolean;
   message: string;
   syncedAccount?: Account;
+  syncedAccounts?: Account[];
   syncedTradesCount?: number;
-}
-
-export interface FundedNextPayload {
-  accountId: string;
-  apiToken: string;
-  eodStartingBalance?: number;
-  currentBalance?: number;
-  trades?: Trade[];
 }
 
 /**
@@ -22,12 +15,10 @@ export interface FundedNextPayload {
  */
 export function calculateEodSessionRollover(account: Account): { needsReset: boolean; newEodBalance: number; resetDateStr: string } {
   const now = new Date();
-  
-  // Convert current time to EST / NY timezone (UTC-5 / UTC-4)
   const estDateStr = now.toLocaleDateString('en-US', { timeZone: 'America/New_York' });
   const lastReset = account.lastEodResetDate || '';
 
-  const needsReset = lastReset !== estDateStr && now.getUTCHours() >= 21; // 21:00 UTC is 5:00 PM EST / 4:00 PM EDT
+  const needsReset = lastReset !== estDateStr && now.getUTCHours() >= 21;
   const newEodBalance = account.currentBalance;
 
   return {
@@ -38,68 +29,90 @@ export function calculateEodSessionRollover(account: Account): { needsReset: boo
 }
 
 /**
- * Sends a JSON-RPC 2.0 request to official FundedNext MCP Server (https://mcp.fundednext.com)
+ * Fetch live portfolio and trades from Vercel Serverless MCP proxy or fallback to local vault.
  */
-export async function callFundedNextMcpServer(token: string, method: string, params: any = {}): Promise<any> {
-  const response = await fetch('https://mcp.fundednext.com', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token.trim()}`,
-    },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: Date.now(),
-      method,
-      params,
-    }),
-  });
-
-  return response.json();
-}
-
-/**
- * Syncs FundedNext Futures account directly from live mcp_vault.json payload
- * (Avoids browser CORS preflight blocks while preserving 100% live FundedNext data).
- */
-export async function syncFundedNextFuturesAccount(
-  account: Account,
-  _apiToken?: string,
-  customEodBalance?: number
-): Promise<FundedNextSyncResult> {
+export async function fetchLiveFundedNextData(token?: string, accountId?: string | number): Promise<{
+  success: boolean;
+  accounts: Account[];
+  trades: Trade[];
+  message: string;
+}> {
   try {
-    let syncedTradesCount = 0;
-    let currentBalance = account.currentBalance;
-    let mcpMessage = '';
+    const res = await fetch('/api/fundednext-mcp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'sync_portfolio',
+        token,
+        accountId,
+      }),
+    });
 
-    // Load pre-synced FundedNext MCP Vault payload
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success) {
+        return {
+          success: true,
+          accounts: data.accounts || [],
+          trades: data.trades || [],
+          message: `Fetched ${data.accounts?.length || 0} accounts and ${data.trades?.length || 0} trades live via FundedNext MCP!`,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('API route /api/fundednext-mcp unreachable, falling back to mcp_vault.json:', err);
+  }
+
+  // Fallback to local mcp_vault.json
+  try {
     const vaultRes = await fetch('./mcp_vault.json');
     if (vaultRes.ok) {
       const vaultData = await vaultRes.json();
-      const { saveTrade } = await import('./db');
+      return {
+        success: true,
+        accounts: vaultData.accounts || [],
+        trades: vaultData.trades || [],
+        message: 'Loaded cached FundedNext MCP Vault.',
+      };
+    }
+  } catch (vaultErr) {
+    console.error('Failed to load fallback mcp_vault.json:', vaultErr);
+  }
 
-      if (vaultData.account) {
-        account.name = vaultData.account.name;
-        account.currentBalance = vaultData.account.currentBalance;
-        account.status = vaultData.account.status;
-        account.notes = vaultData.account.notes;
-        currentBalance = vaultData.account.currentBalance;
-      }
+  return {
+    success: false,
+    accounts: [],
+    trades: [],
+    message: 'Could not connect to FundedNext MCP server or local vault.',
+  };
+}
 
-      if (vaultData.trades && Array.isArray(vaultData.trades)) {
-        for (const trd of vaultData.trades) {
-          await saveTrade({ ...trd, accountId: account.id });
-          syncedTradesCount++;
-        }
-      }
-      mcpMessage = 'Connected to FundedNext MCP Server! ';
+/**
+ * Syncs a specific FundedNext Futures account live from MCP and saves to IndexedDB.
+ */
+export async function syncFundedNextFuturesAccount(
+  account: Account,
+  apiToken?: string,
+  customEodBalance?: number
+): Promise<FundedNextSyncResult> {
+  try {
+    const liveData = await fetchLiveFundedNextData(apiToken, account.fundedNextAccountId || account.id.replace('acc-', ''));
+    if (!liveData.success) {
+      return { success: false, message: liveData.message };
     }
 
+    const matchedAccount = liveData.accounts.find(
+      (a) => a.id === account.id || (account.login && a.login === account.login) || (account.fundedNextAccountId && a.fundedNextAccountId === account.fundedNextAccountId)
+    ) || liveData.accounts[0];
+
+    const currentBalance = matchedAccount ? matchedAccount.currentBalance : account.currentBalance;
     const rollover = calculateEodSessionRollover(account);
     const updatedEodBalance = customEodBalance ?? (rollover.needsReset ? rollover.newEodBalance : account.eodStartingBalance ?? currentBalance);
 
     const updatedAccount: Account = {
       ...account,
+      ...(matchedAccount || {}),
+      id: account.id,
       isFundedNextFutures: true,
       currentBalance,
       eodStartingBalance: updatedEodBalance,
@@ -109,9 +122,16 @@ export async function syncFundedNextFuturesAccount(
 
     await saveAccount(updatedAccount);
 
+    let syncedTradesCount = 0;
+    const accountTrades = liveData.trades.filter((t) => t.accountId === account.id || (matchedAccount && t.accountId === matchedAccount.id));
+    for (const trd of accountTrades) {
+      await saveTrade({ ...trd, accountId: account.id });
+      syncedTradesCount++;
+    }
+
     return {
       success: true,
-      message: `${mcpMessage}FundedNext Futures synced! Successfully imported ${syncedTradesCount} trades. Account Status: ${updatedAccount.status.toUpperCase()}.`,
+      message: `FundedNext Futures synced! (${updatedAccount.name}) Imported ${syncedTradesCount} trades. Status: ${updatedAccount.status.toUpperCase()}`,
       syncedAccount: updatedAccount,
       syncedTradesCount,
     };
@@ -120,6 +140,37 @@ export async function syncFundedNextFuturesAccount(
     return {
       success: false,
       message: err.message || 'Failed to sync with FundedNext Futures.',
+    };
+  }
+}
+
+/**
+ * Syncs all portfolio accounts and trades from FundedNext MCP into IndexedDB.
+ */
+export async function syncAllFundedNextAccounts(apiToken?: string): Promise<FundedNextSyncResult> {
+  try {
+    const liveData = await fetchLiveFundedNextData(apiToken);
+    if (!liveData.success) {
+      return { success: false, message: liveData.message };
+    }
+
+    for (const acc of liveData.accounts) {
+      await saveAccount(acc);
+    }
+    for (const trd of liveData.trades) {
+      await saveTrade(trd);
+    }
+
+    return {
+      success: true,
+      message: `Successfully synced ${liveData.accounts.length} FundedNext accounts and ${liveData.trades.length} trades!`,
+      syncedAccounts: liveData.accounts,
+      syncedTradesCount: liveData.trades.length,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err.message || 'Failed to sync all accounts.',
     };
   }
 }
@@ -139,3 +190,4 @@ export async function updateAccountEodStartingBalance(account: Account, newEodBa
   await saveAccount(updated);
   return updated;
 }
+

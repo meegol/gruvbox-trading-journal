@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import type { Account, Trade, TradingStats, AccountStatus } from './types/journal';
+import type { Account, Trade, TradingStats } from './types/journal';
 import { 
+  getAllAccounts,
   saveAccount, 
   deleteAccount, 
   getTradesByAccount, 
   saveTrade, 
   deleteTrade
 } from './services/db';
-import { pullFromRealServerCloud, pushToRealServerCloud } from './services/dbSync';
+import { fetchLiveFundedNextData } from './services/fundedNextSync';
+import { pushToRealServerCloud } from './services/dbSync';
 import { computeTradingStats } from './utils/calculations';
 
 import { Navbar } from './components/Navbar';
@@ -36,7 +38,7 @@ export function App() {
   });
 
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [activeAccountId, setActiveAccountId] = useState<string>('acc-50k-eval-default');
+  const [activeAccountId, setActiveAccountId] = useState<string>('acc-963132214');
   const [trades, setTrades] = useState<Trade[]>([]);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
 
@@ -50,51 +52,45 @@ export function App() {
   const [isFundedNextSyncOpen, setIsFundedNextSyncOpen] = useState(false);
 
   const reloadData = async () => {
-    let vaultData: any = null;
     try {
-      const vRes = await fetch('./mcp_vault.json');
-      if (vRes.ok) vaultData = await vRes.json();
-    } catch(e) {}
-
-    const targetAccId = 'acc-1786666607627';
-    let activeAccount: Account = {
-      id: targetAccId,
-      name: vaultData?.account?.name || 'Futures Flex Challenge | 50K (961318602)',
-      type: 'eval',
-      initialBalance: 50000,
-      currentBalance: vaultData?.account?.currentBalance || 48718.35,
-      profitTarget: 2500,
-      maxDrawdown: 1384.55,
-      dailyLossLimit: 1384.55,
-      isFundedNextFutures: true,
-      eodStartingBalance: 50000,
-      peakEodBalance: 50000,
-      payoutThreshold: 1500,
-      status: (vaultData?.account?.status as AccountStatus) || 'failed',
-      createdAt: new Date().toISOString(),
-      notes: vaultData?.account?.notes || 'Breached on FundedNext: Monthly Loss Limit'
-    };
-
-    await saveAccount(activeAccount);
-    setAccounts([activeAccount]);
-    setActiveAccountId(targetAccId);
-
-    // Save 92 trades from vault
-    if (vaultData?.trades && Array.isArray(vaultData.trades)) {
-      for (const trd of vaultData.trades) {
-        await saveTrade({ ...trd, accountId: targetAccId });
+      let accs = await getAllAccounts();
+      if (accs.length === 0 || (accs.length === 1 && accs[0].id === 'acc-50k-eval-default')) {
+        const live = await fetchLiveFundedNextData();
+        if (live.success && live.accounts.length > 0) {
+          for (const a of live.accounts) await saveAccount(a);
+          for (const t of live.trades) await saveTrade(t);
+          accs = await getAllAccounts();
+        }
       }
+
+      setAccounts(accs);
+
+      // Track the 48010 account by default (FNFTCHMIGUELCARANDAN48010 / 963132214)
+      const target48010 = accs.find(
+        (a) =>
+          (a.name && (a.name.includes('48010') || a.name.includes('963132214'))) ||
+          (a.notes && a.notes.includes('48010')) ||
+          a.id === 'acc-963132214'
+      );
+
+      const targetId =
+        activeAccountId && accs.some((a) => a.id === activeAccountId) && activeAccountId !== 'acc-50k-eval-default'
+          ? activeAccountId
+          : target48010
+          ? target48010.id
+          : accs[0]?.id || 'acc-963132214';
+
+      setActiveAccountId(targetId);
+      const tradeList = await getTradesByAccount(targetId);
+      setTrades(tradeList);
+    } catch (e) {
+      console.error('Error reloading data:', e);
     }
-    const tradeList = await getTradesByAccount(targetAccId);
-    setTrades(tradeList);
   };
 
   const handleUnlockVault = async () => {
     sessionStorage.setItem('migo_vault_unlocked', 'true');
     setIsLocked(false);
-    
-    // Auto-pull latest cloud state on unlock
-    await pullFromRealServerCloud();
     await reloadData();
   };
 
@@ -104,11 +100,7 @@ export function App() {
   };
 
   useEffect(() => {
-    if (!isLocked) {
-      pullFromRealServerCloud().then(() => reloadData());
-    } else {
-      reloadData();
-    }
+    reloadData();
   }, []);
 
   useEffect(() => {
