@@ -95,6 +95,7 @@ export interface CalendarDaySummary {
   tradeCount: number;
   winCount: number;
   lossCount: number;
+  breakevenCount?: number;
   netR: number;
   trades: Trade[];
 }

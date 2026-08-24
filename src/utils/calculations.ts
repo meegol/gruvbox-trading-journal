@@ -332,14 +332,20 @@ export function groupTradesByCalendarMonth(trades: Trade[], year: number, month:
           tradeCount: 0,
           winCount: 0,
           lossCount: 0,
+          breakevenCount: 0,
           netR: 0,
           trades: [],
         };
 
         existing.pnl += trade.pnl;
         existing.tradeCount += 1;
-        if (trade.pnl > 0.01) existing.winCount += 1;
-        else if (trade.pnl < -0.01) existing.lossCount += 1;
+        if (trade.pnl > 0.01 || trade.status === 'win') {
+          existing.winCount += 1;
+        } else if (trade.pnl < -0.01 || trade.status === 'loss') {
+          existing.lossCount += 1;
+        } else {
+          existing.breakevenCount = (existing.breakevenCount || 0) + 1;
+        }
         if (trade.rMultiple) existing.netR += trade.rMultiple;
         existing.trades.push(trade);
 
